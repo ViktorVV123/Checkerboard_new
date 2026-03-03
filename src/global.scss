@@ -1,0 +1,62 @@
+:root {
+    --bg-primary:#2D2D2D;
+    --bg-secondary: #2D2D2D;
+    --bg-card: #1a1a1f;
+    --bg-table-row: transparent;
+    --bg-table-row-hover: rgba(255, 255, 255, 0.03);
+    --bg-table-header: #0d0d0f;
+    --text-primary: #EEEEEE;
+    --text-secondary: #EEEEEE;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --border: #4b4b4c;
+    --tab-active: #ffffff;
+    --tab-inactive: #71717a;
+    --forecast-bg: rgba(239, 68, 68, 0.08);
+    --forecast-border: rgba(239, 68, 68, 0.3);
+    --summary-bg: #111113;
+    --base-font: clamp(16px, 1.3vh, 22px);
+    --tabs-font: clamp(16px, 1.4vh, 18px);
+
+}
+
+[data-theme='light'] {
+    --bg-primary: #f4f4f5;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-table-row: transparent;
+    --bg-table-row-hover: rgba(0, 0, 0, 0.02);
+    --bg-table-header: #f4f4f5;
+    --text-primary: #18181b;
+    --text-secondary: #71717a;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --border: #e4e4e7;
+    --tab-active: #18181b;
+    --tab-inactive: #a1a1aa;
+    --forecast-bg: rgba(239, 68, 68, 0.05);
+    --forecast-border: rgba(239, 68, 68, 0.2);
+    --summary-bg: #fafafa;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s;
+
+}
+
+html, body, #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+
+}

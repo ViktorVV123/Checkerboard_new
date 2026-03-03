@@ -1,0 +1,63 @@
+.tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 40px;
+  background-color: var(--bg-secondary);
+  overflow-x: auto;
+
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 3px;
+  }
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.9em 1.5em;
+  border: none;
+  background-color: transparent;
+  color: var(--tab-inactive);
+  cursor: pointer;
+  font-size: var(--tabs-font);
+  font-weight: 500;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--text-primary);
+  }
+}
+
+.active {
+  color: var(--tab-active);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dotRed {
+  background-color: #f87171;
+}
+
+.dotOrange {
+  background-color: #f59e0b;
+}
+
+.dotYellow {
+  background-color: #fde047;
+}

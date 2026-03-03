@@ -1,0 +1,266 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.content {
+  flex: 1;
+  padding-top: 8px;
+}
+
+.loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+// Панель сценариев
+.scenarioBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 40px;
+  background-color: var(--bg-secondary);
+
+  gap: 8px;
+}
+
+.scenarioLeft {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.scenarioItem {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.scenarioBtn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+}
+
+.active {
+  background-color: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+.scenarioDelete {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+
+  &:hover {
+    color: #ef4444;
+  }
+}
+
+.createBtn {
+  padding: 6px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--accent);
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+}
+
+// Модалка
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modalContent {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  min-width: 360px;
+
+  h3 {
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    font-size: 16px;
+  }
+}
+
+.modalInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--accent);
+  }
+}
+
+.modalButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modalCancel {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.modalSave {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--accent);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover {
+    background-color: var(--accent-hover);
+  }
+}
+
+.modalTextarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+
+  &:focus {
+    border-color: var(--accent);
+  }
+}
+.scenarioRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saveBtn {
+  padding: 6px 14px;
+  border: 1px solid #22c55e;
+  border-radius: 6px;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(34, 197, 94, 0.2);
+  }
+}
+.scenarioBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  gap: 2px;
+
+  &:hover {
+    border-color: var(--accent);
+  }
+}
+
+.scenarioName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.scenarioAuthor {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+
+  .scenarioName {
+    color: #ffffff;
+  }
+
+  .scenarioAuthor {
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.refreshBtn {
+  padding: 6px 10px;
+  background-color: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+
+
+}
