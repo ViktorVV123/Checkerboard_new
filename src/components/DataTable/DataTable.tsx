@@ -39,6 +39,9 @@ const DataTable: React.FC<DataTableProps> = ({
     const tableRef = useRef<HTMLTableElement>(null);
     const rowRectsRef = useRef<DOMRect[]>([]);
 
+
+
+
     const formatValue = (value: any): string => {
         if (value === null || value === undefined) return '';
         const num = Number(value);
@@ -216,6 +219,18 @@ const DataTable: React.FC<DataTableProps> = ({
     const parkRow = processedData.find((r) => Number(r.parkVolume) > 0);
     if (parkRow) totals.parkVolume = Number(parkRow.parkVolume);
 
+
+    const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    const weekFromNow = new Date(now);
+    weekFromNow.setDate(weekFromNow.getDate() + 6);
+    const weekEnd = weekFromNow.getFullYear() * 10000 + (weekFromNow.getMonth() + 1) * 100 + weekFromNow.getDate();
+
+    const getRowClass = (date: number): string => {
+        if (date < today) return s.pastRow;
+        if (date >= today && date <= weekEnd) return s.currentWeekRow;
+        return '';
+    };
+
     return (
         <div className={s.wrapper}>
             <table className={s.table} ref={tableRef}>
@@ -231,21 +246,33 @@ const DataTable: React.FC<DataTableProps> = ({
                 </thead>
                 <tbody ref={tbodyRef}>
                 {processedData.map((row, rowIndex) => (
-                    <tr key={row.id || rowIndex}>
+                    <tr key={row.id || rowIndex} className={getRowClass(Number(row.date))}>
                         {columns.map((col) => {
                             const cellKey = `${row.id}-${col.key}`;
                             const isEditing = editingCell === cellKey;
                             const isEdited = row.editedFields?.includes(col.key);
                             const cellValue = row[col.key];
-                            const isNegative =
-                                cellValue !== null && cellValue !== undefined && Number(cellValue) < 0;
                             const inFillRange = isCellInFillRange(rowIndex, col.key);
+
+                            // Остатки < 0 → жёлтый текст
+                            const isNegativeRemains =
+                                col.key === 'tradeRemains' &&
+                                cellValue !== null && cellValue !== undefined &&
+                                Number(cellValue) < 0;
+
+                            // Свободная емкость < Выработка → красный текст
+                            const isLowCapacity =
+                                col.key === 'freeCapacity' &&
+                                row.freeCapacity !== null && row.freeCapacity !== undefined &&
+                                row.expected !== null && row.expected !== undefined &&
+                                Number(row.freeCapacity) < Number(row.expected);
 
                             const cellClass = [
                                 getColorClass(col.color),
                                 isEdited ? s.editedCell : '',
                                 editable && col.editable ? s.editableCell : '',
-                                isNegative ? s.negativeCell : '',
+                                isNegativeRemains ? s.yellowText : '',
+                                isLowCapacity ? s.redText : '',
                                 inFillRange ? s.fillPreview : '',
                             ]
                                 .filter(Boolean)

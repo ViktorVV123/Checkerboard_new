@@ -137,11 +137,12 @@ function calculateAllRowsInternal(rows: any[]): any[] {
 
 export type IndicatorColor = 'red' | 'orange' | 'yellow' | null;
 
+
+
 export const getProductIndicator = (rows: any[]): IndicatorColor => {
     const now = new Date();
     const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
 
-    // Считаем данные с пересчётом
     const processed = calculateAllRows(rows);
 
     let hasNegativeRemains = false;
@@ -152,19 +153,19 @@ export const getProductIndicator = (rows: any[]): IndicatorColor => {
 
     for (const row of processed) {
         const date = Number(row.date);
-        if (date < today) continue; // пропускаем прошлые дни
+        if (date < today) continue;
 
         dayIndex++;
         const freeCapacity = Number(row.freeCapacity) || 0;
         const expected = Number(row.expected) || 0;
         const tradeRemains = Number(row.tradeRemains) || 0;
 
-        // Остатки < 0
+        // Остатки < 0 → жёлтый
         if (tradeRemains < 0) {
             hasNegativeRemains = true;
         }
 
-        // Сут. хода
+        // Сут. хода = свободная емкость / выработка
         if (expected > 0) {
             const daysLeft = freeCapacity / expected;
             if (daysLeft < 1) {
@@ -177,6 +178,7 @@ export const getProductIndicator = (rows: any[]): IndicatorColor => {
         }
     }
 
+    // Приоритет: красный > оранжевый > жёлтый
     if (hasLessThan1In10Days) return 'red';
     if (hasLessThan1After10Days) return 'orange';
     if (hasNegativeRemains) return 'yellow';
