@@ -298,6 +298,81 @@ const FactoryPage: React.FC = () => {
         return { ...editedRow, edited: hasEdits, editedFields };
     });
 
+    const handleFillDown = async (rowIds: number[], field: string, value: string) => {
+        if (!activeScenario) return;
+
+        const newEdited = new Map(editedCells);
+
+        for (const rowId of rowIds) {
+            const originalRow = data.find((r) => r.id === rowId);
+            const originalValue = originalRow ? String(Math.round(Number(originalRow[field]) || 0)) : '0';
+            const newValue = String(Math.round(Number(value) || 0));
+
+            if (newValue === originalValue) {
+                newEdited.delete(`${rowId}-${field}`);
+                continue;
+            }
+
+            newEdited.set(`${rowId}-${field}`, value);
+
+            // Пересчёт отгрузки
+            const shipmentFields = ['railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact', 'waterShipmentFact'];
+            if (shipmentFields.includes(field)) {
+                const currentRow = { ...originalRow };
+                newEdited.forEach((val, k) => {
+                    const [rId, f] = k.split('-');
+                    if (Number(rId) === rowId) {
+                        currentRow[f] = Number(val);
+                    }
+                });
+
+                const zhd = Number(currentRow.railwayShipmentFact) || 0;
+                const pipe = Number(currentRow.pipeShipmentFact) || 0;
+                const mnpp = Number(currentRow.mnppShipmentFact) || 0;
+                const water = Number(currentRow.waterShipmentFact) || 0;
+                const total = zhd + pipe + mnpp + water;
+
+                newEdited.set(`${rowId}-shipmentFact`, String(total));
+            }
+
+            // Пересчёт свободной емкости
+            const freeCapacityFields = ['tradeRemains', 'parkVolume'];
+            if (freeCapacityFields.includes(field)) {
+                const currentRow = { ...originalRow };
+                newEdited.forEach((val, k) => {
+                    const [rId, f] = k.split('-');
+                    if (Number(rId) === rowId) {
+                        currentRow[f] = Number(val);
+                    }
+                });
+
+                const parkVolume = Number(currentRow.parkVolume) || 0;
+                const tradeRemains = Number(currentRow.tradeRemains) || 0;
+                newEdited.set(`${rowId}-freeCapacity`, String(parkVolume - tradeRemains));
+            }
+        }
+
+        setEditedCells(newEdited);
+
+        // Сохраняем все на сервер
+        for (const rowId of rowIds) {
+            const val = newEdited.get(`${rowId}-${field}`);
+            if (val !== undefined) {
+                await saveScenarioEdit(activeScenario.id, rowId, field, val);
+
+                const shipmentVal = newEdited.get(`${rowId}-shipmentFact`);
+                if (shipmentVal !== undefined) {
+                    await saveScenarioEdit(activeScenario.id, rowId, 'shipmentFact', shipmentVal);
+                }
+
+                const freeCapVal = newEdited.get(`${rowId}-freeCapacity`);
+                if (freeCapVal !== undefined) {
+                    await saveScenarioEdit(activeScenario.id, rowId, 'freeCapacity', freeCapVal);
+                }
+            }
+        }
+    };
+
     return (
         <div className={s.page}>
             <Header
@@ -408,6 +483,7 @@ const FactoryPage: React.FC = () => {
                         formatDate={formatDate}
                         editable={isEditing}
                         onCellEdit={handleCellEdit}
+                        onFillDown={handleFillDown}
                     />
                 )}
             </div>

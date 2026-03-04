@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import * as s from './DataTable.module.scss';
 import { calculateAllRows } from '../../utils/calculations';
 
@@ -16,6 +16,7 @@ interface DataTableProps {
     formatDate?: (date: number) => string;
     editable?: boolean;
     onCellEdit?: (rowId: number, field: string, value: string) => void;
+    onFillDown?: (rowIds: number[], field: string, value: string) => void;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -24,10 +25,19 @@ const DataTable: React.FC<DataTableProps> = ({
                                                  formatDate,
                                                  editable = false,
                                                  onCellEdit,
+                                                 onFillDown,
                                                  originalData,
                                              }) => {
     const [editingCell, setEditingCell] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
+
+    // Fill-down state
+    const [fillSource, setFillSource] = useState<{ rowIndex: number; colKey: string; value: any } | null>(null);
+    const [fillTargetIndex, setFillTargetIndex] = useState<number | null>(null);
+    const isDragging = useRef(false);
+    const tbodyRef = useRef<HTMLTableSectionElement>(null);
+    const tableRef = useRef<HTMLTableElement>(null);
+    const rowRectsRef = useRef<DOMRect[]>([]);
 
     const formatValue = (value: any): string => {
         if (value === null || value === undefined) return '';
@@ -47,9 +57,13 @@ const DataTable: React.FC<DataTableProps> = ({
     };
 
     const processedData = calculateAllRows(data, editable, originalData);
+    const processedDataRef = useRef(processedData);
+    processedDataRef.current = processedData;
 
+    // --- Editing logic ---
     const handleCellClick = (rowId: number, col: Column, currentValue: any) => {
         if (!editable || !col.editable) return;
+        if (isDragging.current) return;
         const key = `${rowId}-${col.key}`;
         setEditingCell(key);
         setEditValue(currentValue !== null && currentValue !== undefined ? String(Math.round(Number(currentValue))) : '');
@@ -67,8 +81,107 @@ const DataTable: React.FC<DataTableProps> = ({
         if (e.key === 'Escape') setEditingCell(null);
     };
 
+    // --- Fill-down logic ---
+    const handleFillHandleMouseDown = useCallback(
+        (e: React.MouseEvent, rowIndex: number, colKey: string, value: any) => {
+            e.preventDefault();
+            e.stopPropagation();
+            isDragging.current = true;
+            setFillSource({ rowIndex, colKey, value });
+            setFillTargetIndex(rowIndex);
+
+            // Snapshot row positions at drag start
+            if (tbodyRef.current) {
+                const rows = tbodyRef.current.querySelectorAll('tr');
+                rowRectsRef.current = Array.from(rows).map((r) => r.getBoundingClientRect());
+            }
+        },
+        []
+    );
+
+    const fillSourceRef = useRef(fillSource);
+    fillSourceRef.current = fillSource;
+    const fillTargetRef = useRef(fillTargetIndex);
+    fillTargetRef.current = fillTargetIndex;
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging.current || !fillSourceRef.current) return;
+
+            const rects = rowRectsRef.current;
+            const sourceIdx = fillSourceRef.current.rowIndex;
+            const y = e.clientY;
+
+            // Find the last row whose top is above or at the cursor position
+            // This ensures continuous selection even with fast mouse movement
+            let targetIdx = sourceIdx;
+            for (let i = sourceIdx + 1; i < rects.length; i++) {
+                const rect = rects[i];
+                // Row center determines if we've "entered" this row
+                const rowCenter = rect.top + rect.height / 2;
+                if (y >= rowCenter) {
+                    targetIdx = i;
+                } else {
+                    break;
+                }
+            }
+
+            setFillTargetIndex(targetIdx);
+        };
+
+        const handleMouseUp = () => {
+            if (!isDragging.current) return;
+            isDragging.current = false;
+
+            const source = fillSourceRef.current;
+            const target = fillTargetRef.current;
+            const currentData = processedDataRef.current;
+
+            if (source && target !== null && target > source.rowIndex) {
+                const rowIds: number[] = [];
+                for (let i = source.rowIndex + 1; i <= target; i++) {
+                    if (currentData[i]) {
+                        rowIds.push(currentData[i].id);
+                    }
+                }
+
+                if (rowIds.length > 0) {
+                    if (onFillDown) {
+                        onFillDown(rowIds, source.colKey, String(source.value));
+                    } else if (onCellEdit) {
+                        rowIds.forEach((id) => {
+                            onCellEdit(id, source.colKey, String(source.value));
+                        });
+                    }
+                }
+            }
+
+            setFillSource(null);
+            setFillTargetIndex(null);
+            rowRectsRef.current = [];
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [onFillDown, onCellEdit]);
+
+    const isCellInFillRange = (rowIndex: number, colKey: string): boolean => {
+        if (!fillSource || fillTargetIndex === null) return false;
+        return (
+            colKey === fillSource.colKey &&
+            rowIndex > fillSource.rowIndex &&
+            rowIndex <= fillTargetIndex
+        );
+    };
+
+    // --- Totals ---
     const now = new Date();
-    const currentMonth = (now.getFullYear() * 100) + (now.getMonth() + 1);
+    const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
 
     const totals: Record<string, number> = {
         plan: 0,
@@ -103,10 +216,9 @@ const DataTable: React.FC<DataTableProps> = ({
     const parkRow = processedData.find((r) => Number(r.parkVolume) > 0);
     if (parkRow) totals.parkVolume = Number(parkRow.parkVolume);
 
-
     return (
         <div className={s.wrapper}>
-            <table className={s.table}>
+            <table className={s.table} ref={tableRef}>
                 <thead>
                 <tr>
                     {columns.map((col) => (
@@ -117,22 +229,35 @@ const DataTable: React.FC<DataTableProps> = ({
                     ))}
                 </tr>
                 </thead>
-                <tbody>
-                {processedData.map((row, index) => (
-                    <tr key={row.id || index}>
+                <tbody ref={tbodyRef}>
+                {processedData.map((row, rowIndex) => (
+                    <tr key={row.id || rowIndex}>
                         {columns.map((col) => {
                             const cellKey = `${row.id}-${col.key}`;
                             const isEditing = editingCell === cellKey;
                             const isEdited = row.editedFields?.includes(col.key);
                             const cellValue = row[col.key];
-                            const isNegative = cellValue !== null && cellValue !== undefined && Number(cellValue) < 0;
+                            const isNegative =
+                                cellValue !== null && cellValue !== undefined && Number(cellValue) < 0;
+                            const inFillRange = isCellInFillRange(rowIndex, col.key);
 
                             const cellClass = [
                                 getColorClass(col.color),
                                 isEdited ? s.editedCell : '',
                                 editable && col.editable ? s.editableCell : '',
                                 isNegative ? s.negativeCell : '',
-                            ].filter(Boolean).join(' ');
+                                inFillRange ? s.fillPreview : '',
+                            ]
+                                .filter(Boolean)
+                                .join(' ');
+
+                            const showFillHandle =
+                                editable &&
+                                col.editable &&
+                                !isEditing &&
+                                cellValue !== null &&
+                                cellValue !== undefined &&
+                                cellValue !== '';
 
                             return (
                                 <td
@@ -152,7 +277,19 @@ const DataTable: React.FC<DataTableProps> = ({
                                     ) : col.key === 'date' && formatDate ? (
                                         formatDate(row[col.key])
                                     ) : (
-                                        formatValue(row[col.key])
+                                        <>
+                                            {inFillRange
+                                                ? formatValue(fillSource?.value)
+                                                : formatValue(row[col.key])}
+                                            {showFillHandle && (
+                                                <span
+                                                    className={s.fillHandle}
+                                                    onMouseDown={(e) =>
+                                                        handleFillHandleMouseDown(e, rowIndex, col.key, cellValue)
+                                                    }
+                                                />
+                                            )}
+                                        </>
                                     )}
                                 </td>
                             );
