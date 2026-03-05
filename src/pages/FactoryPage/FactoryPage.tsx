@@ -19,19 +19,23 @@ import {getProductIndicator, IndicatorColor} from "@/utils/calculations";
 
 
 
-const COLUMNS = [
-    { key: 'date', label: 'Дата' },
-    { key: 'expected', label: 'Выработка', color: 'blue' as const, editable: true },
-    { key: 'shipmentFact', label: 'Отгрузка (всего)' },
-    { key: 'railwayShipmentFact', label: 'ЖД', color: 'red' as const, editable: true },
-    { key: 'pipeShipmentFact', label: 'Труба', color: 'red' as const, editable: true },
-    { key: 'mnppShipmentFact', label: 'МНПП', color: 'red' as const, editable: true },
-    { key: 'waterShipmentFact', label: 'Вода', color: 'green' as const, editable: true },
-    { key: 'tradeRemains', label: 'Остатки (товар + компонент)' },
-    { key: 'passport', label: 'Остатки (паспорт)' },
-    { key: 'freeCapacity', label: 'Своб. емкость' },
-    { key: 'unregisteredShipment', label: 'Неоформл. отгрузка' },
-];
+const getColumns = (enterprise: string, product: string) => {
+    const isNnosSpecial = enterprise === 'ННОС' && (product === 'Нефть' || product === 'ВГЛ');
+
+    return [
+        { key: 'date', label: 'Дата' },
+        { key: 'expected', label: isNnosSpecial ? 'Переработка' : 'Выработка', color: 'blue' as const, editable: true },
+        { key: 'shipmentFact', label: isNnosSpecial ? 'Поставка (всего)' : 'Отгрузка (всего)', absValue: isNnosSpecial },
+        { key: 'railwayShipmentFact', label: 'ЖД', color: 'red' as const, editable: true, absValue: isNnosSpecial },
+        { key: 'pipeShipmentFact', label: 'Труба', color: 'red' as const, editable: true, absValue: isNnosSpecial },
+        { key: 'mnppShipmentFact', label: 'МНПП', color: 'red' as const, editable: true, absValue: isNnosSpecial },
+        { key: 'waterShipmentFact', label: 'Вода', color: 'green' as const, editable: true, absValue: isNnosSpecial },
+        { key: 'tradeRemains', label: 'Остатки (товар + компонент)' },
+        { key: 'passport', label: 'Остатки (паспорт)' },
+        { key: 'freeCapacity', label: 'Своб. емкость' },
+        { key: 'unregisteredShipment', label: 'Неоформл. отгрузка' },
+    ];
+};
 
 const formatDate = (dateNum: number): string => {
     const str = String(dateNum);
@@ -477,7 +481,7 @@ const FactoryPage: React.FC = () => {
                     <div className={s.loader}>Загрузка данных...</div>
                 ) : (
                     <DataTable
-                        columns={COLUMNS}
+                        columns={getColumns(enterprise, product)}
                         data={displayData}
                         originalData={activeScenario ? data : undefined}
                         formatDate={formatDate}

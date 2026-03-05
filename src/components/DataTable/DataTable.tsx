@@ -7,6 +7,7 @@ interface Column {
     label: string;
     color?: 'blue' | 'red' | 'green';
     editable?: boolean;
+    absValue?: boolean;
 }
 
 interface DataTableProps {
@@ -306,8 +307,8 @@ const DataTable: React.FC<DataTableProps> = ({
                                     ) : (
                                         <>
                                             {inFillRange
-                                                ? formatValue(fillSource?.value)
-                                                : formatValue(row[col.key])}
+                                                ? formatValue(col.absValue ? Math.abs(Number(fillSource?.value) || 0) : fillSource?.value)
+                                                : formatValue(col.absValue ? Math.abs(Number(row[col.key]) || 0) : row[col.key])}
                                             {showFillHandle && (
                                                 <span
                                                     className={s.fillHandle}
