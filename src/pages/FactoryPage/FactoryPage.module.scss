@@ -83,19 +83,30 @@
 }
 
 .createBtn {
-  padding: 6px 14px;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  background-color: transparent;
-  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--accent);
+  color: #ffffff;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
   transition: all 0.2s;
+  letter-spacing: 0.02em;
 
   &:hover {
-    border-color: var(--accent);
-    background-color: rgba(59, 130, 246, 0.1);
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107, 155, 210, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 }
 

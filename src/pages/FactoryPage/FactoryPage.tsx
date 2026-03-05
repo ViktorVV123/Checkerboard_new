@@ -15,9 +15,7 @@ import {
     getScenarioData,
 } from '../../api/factoriesApi';
 import * as s from './FactoryPage.module.scss';
-import {getProductIndicator, IndicatorColor} from "@/utils/calculations";
-
-
+import { getProductIndicator, IndicatorColor } from '@/utils/calculations';
 
 const getColumns = (enterprise: string, product: string) => {
     const isNnosSpecial = enterprise === 'ННОС' && (product === 'Нефть' || product === 'ВГЛ');
@@ -56,7 +54,6 @@ const FactoryPage: React.FC = () => {
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Сценарии
     const [scenarios, setScenarios] = useState<any[]>([]);
     const [activeScenario, setActiveScenario] = useState<any | null>(null);
     const [editedCells, setEditedCells] = useState<Map<string, string>>(new Map());
@@ -74,6 +71,25 @@ const FactoryPage: React.FC = () => {
         setScenarios(list);
     };
 
+    // Применяем правки к данным для отображения
+    const displayData = data.map((row) => {
+        const editedRow = { ...row };
+        let hasEdits = false;
+        const editedFields: string[] = [];
+
+        editedCells.forEach((value, key) => {
+            const [rowId, field] = key.split('-');
+            if (Number(rowId) === row.id) {
+                editedRow[field] = Number(value) || value;
+                editedFields.push(field);
+                hasEdits = true;
+            }
+        });
+
+        return { ...editedRow, edited: hasEdits, editedFields };
+    });
+
+    // Загрузка индикаторов для всех продуктов — только при смене предприятия/продуктов
     useEffect(() => {
         if (!enterprise || products.length === 0) return;
 
@@ -92,6 +108,17 @@ const FactoryPage: React.FC = () => {
 
         loadIndicators();
     }, [enterprise, products]);
+
+    // Обновление индикатора текущего продукта при редактировании в сценарии
+    useEffect(() => {
+        if (!activeScenario || !product || data.length === 0) return;
+
+        const indicator = getProductIndicator(displayData);
+        setProductIndicators((prev) => {
+            if (prev[product] === indicator) return prev;
+            return { ...prev, [product]: indicator };
+        });
+    }, [editedCells]);
 
     useEffect(() => {
         getEnterprises().then((list) => {
@@ -121,7 +148,6 @@ const FactoryPage: React.FC = () => {
         });
     }, [enterprise, product]);
 
-    // При переключении сценария или продукта — загружаем данные сценария
     useEffect(() => {
         if (!activeScenario || !data.length) return;
         loadScenarioEdits(activeScenario.id);
@@ -131,7 +157,6 @@ const FactoryPage: React.FC = () => {
         const scenarioData = await getScenarioData(scenarioId);
 
         if (scenarioData.length > 0) {
-            // Фильтруем по текущему продукту — ищем по originalId из наших данных
             const currentIds = new Set(data.map((r) => r.id));
             const relevantRows = scenarioData.filter((r) => currentIds.has(r.id));
 
@@ -140,7 +165,6 @@ const FactoryPage: React.FC = () => {
                 relevantRows.forEach((row) => {
                     Object.entries(row).forEach(([field, value]) => {
                         if (field !== 'id' && value !== null && value !== undefined) {
-                            // Сравниваем с оригиналом — подсвечиваем только изменённые
                             const originalRow = data.find((r) => r.id === row.id);
                             const originalValue = originalRow
                                 ? String(Math.round(Number(originalRow[field]) || 0))
@@ -169,7 +193,6 @@ const FactoryPage: React.FC = () => {
         const originalValue = originalRow ? String(Math.round(Number(originalRow[field]) || 0)) : '0';
         const newValue = String(Math.round(Number(value) || 0));
 
-        // Если значение не изменилось — убираем подсветку
         if (newValue === originalValue) {
             const newEdited = new Map(editedCells);
             newEdited.delete(key);
@@ -284,24 +307,6 @@ const FactoryPage: React.FC = () => {
         setIsEditing(false);
     };
 
-    // Применяем правки к данным для отображения
-    const displayData = data.map((row) => {
-        const editedRow = { ...row };
-        let hasEdits = false;
-        const editedFields: string[] = [];
-
-        editedCells.forEach((value, key) => {
-            const [rowId, field] = key.split('-');
-            if (Number(rowId) === row.id) {
-                editedRow[field] = Number(value) || value;
-                editedFields.push(field);
-                hasEdits = true;
-            }
-        });
-
-        return { ...editedRow, edited: hasEdits, editedFields };
-    });
-
     const handleFillDown = async (rowIds: number[], field: string, value: string) => {
         if (!activeScenario) return;
 
@@ -319,7 +324,6 @@ const FactoryPage: React.FC = () => {
 
             newEdited.set(`${rowId}-${field}`, value);
 
-            // Пересчёт отгрузки
             const shipmentFields = ['railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact', 'waterShipmentFact'];
             if (shipmentFields.includes(field)) {
                 const currentRow = { ...originalRow };
@@ -339,7 +343,6 @@ const FactoryPage: React.FC = () => {
                 newEdited.set(`${rowId}-shipmentFact`, String(total));
             }
 
-            // Пересчёт свободной емкости
             const freeCapacityFields = ['tradeRemains', 'parkVolume'];
             if (freeCapacityFields.includes(field)) {
                 const currentRow = { ...originalRow };
@@ -358,7 +361,6 @@ const FactoryPage: React.FC = () => {
 
         setEditedCells(newEdited);
 
-        // Сохраняем все на сервер
         for (const rowId of rowIds) {
             const val = newEdited.get(`${rowId}-${field}`);
             if (val !== undefined) {
@@ -385,7 +387,6 @@ const FactoryPage: React.FC = () => {
                 onEnterpriseChange={setEnterprise}
             />
 
-            {/* Панель сценариев */}
             <div className={s.scenarioBar}>
                 <div className={s.scenarioLeft}>
                     <button
@@ -419,16 +420,15 @@ const FactoryPage: React.FC = () => {
                             Сохранить
                         </button>
                     )}
+                    <button className={s.createBtn} onClick={() => setShowScenarioModal(true)}>
+                        Создать сценарий
+                    </button>
                     <button className={s.refreshBtn} onClick={loadScenarios} title="Обновить список сценариев">
                         <RefreshIcon style={{ fontSize: 18, color: 'inherit' }} />
-                    </button>
-                    <button className={s.createBtn} onClick={() => setShowScenarioModal(true)}>
-                        + Создать сценарий
                     </button>
                 </div>
             </div>
 
-            {/* Модалка создания сценария */}
             {showScenarioModal && (
                 <div className={s.modal} onClick={() => setShowScenarioModal(false)}>
                     <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>

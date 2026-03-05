@@ -256,17 +256,20 @@ const DataTable: React.FC<DataTableProps> = ({
                             const inFillRange = isCellInFillRange(rowIndex, col.key);
 
                             // Остатки < 0 → жёлтый текст
+                            // Остатки < 0 → жёлтый текст (только для текущих и будущих дней)
                             const isNegativeRemains =
                                 col.key === 'tradeRemains' &&
+                                Number(row.date) >= today &&
                                 cellValue !== null && cellValue !== undefined &&
                                 Number(cellValue) < 0;
-
                             // Свободная емкость < Выработка → красный текст
+                            // Свободная емкость < Выработка → красный текст (только для текущих и будущих дней)
                             const isLowCapacity =
                                 col.key === 'freeCapacity' &&
+                                Number(row.date) >= today &&
                                 row.freeCapacity !== null && row.freeCapacity !== undefined &&
                                 row.expected !== null && row.expected !== undefined &&
-                                Number(row.freeCapacity) < Number(row.expected);
+                                Number(row.freeCapacity) < Math.abs(Number(row.expected));
 
                             const cellClass = [
                                 getColorClass(col.color),
@@ -327,33 +330,33 @@ const DataTable: React.FC<DataTableProps> = ({
                 </tbody>
                 <tfoot>
                 <tr className={s.summaryRow}>
-                    <td>План</td>
+                    <td style={{color:'grey'}}>План</td>
                     <td>{Math.round(totals.plan).toLocaleString('ru-RU')}</td>
                     {columns.slice(2).map((col) => (
                         <td key={col.key}></td>
                     ))}
                 </tr>
                 <tr className={s.summaryRow}>
-                    <td>ОБР</td>
+                    <td style={{color:'grey'}}>ОБР</td>
                     <td>{Math.round(totals.obr).toLocaleString('ru-RU')}</td>
                     {columns.slice(2).map((col) => (
                         <td key={col.key}></td>
                     ))}
                 </tr>
                 <tr className={s.summaryRow}>
-                    <td>Ожид</td>
-                    <td>{Math.round(totals.expected).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(totals.shipmentFact).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(totals.railwayShipmentFact).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(totals.pipeShipmentFact).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(totals.mnppShipmentFact).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(totals.waterShipmentFact).toLocaleString('ru-RU')}</td>
+                    <td style={{color:'grey'}}>Ожид</td>
+                    <td>{Math.round(Math.abs(totals.expected)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.shipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.railwayShipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU')}</td>
                     {columns.slice(7).map((col) => (
                         <td key={col.key}></td>
                     ))}
                 </tr>
                 <tr className={s.summaryRow}>
-                    <td>Объем парка</td>
+                    <td style={{color:'grey'}}>Объем парка</td>
                     <td>{Math.round(totals.parkVolume).toLocaleString('ru-RU')}</td>
                     {columns.slice(2).map((col) => (
                         <td key={col.key}></td>

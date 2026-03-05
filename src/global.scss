@@ -7,8 +7,8 @@
     --bg-table-header: #0d0d0f;
     --text-primary: #EEEEEE;
     --text-secondary: #EEEEEE;
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
+    --accent: #6b9bd2;
+    --accent-hover: #5a89bf;
     --border: #4b4b4c;
     --tab-active: #ffffff;
     --tab-inactive: #71717a;
@@ -17,7 +17,7 @@
     --summary-bg: #111113;
     --base-font: clamp(16px, 1.3vh, 22px);
     --tabs-font: clamp(16px, 1.4vh, 18px);
-
+    --table-seven-day: rgba(255, 255, 255, 0.04);
 }
 
 [data-theme='light'] {
@@ -29,14 +29,15 @@
     --bg-table-header: #f4f4f5;
     --text-primary: #18181b;
     --text-secondary: #71717a;
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
+    --accent: #4a7cb5;
+    --accent-hover: #3a6a9e;
     --border: #e4e4e7;
     --tab-active: #18181b;
     --tab-inactive: #a1a1aa;
     --forecast-bg: rgba(239, 68, 68, 0.05);
     --forecast-border: rgba(239, 68, 68, 0.2);
     --summary-bg: #fafafa;
+    --table-seven-day: rgba(51, 51, 51, 0.04);
 }
 
 * {

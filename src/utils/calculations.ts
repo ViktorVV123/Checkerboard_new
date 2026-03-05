@@ -2,16 +2,25 @@ export const calculateRow = (row: any): any => {
     const calculated = { ...row };
     const calculatedFields: string[] = row.editedFields ? [...row.editedFields] : [];
 
-    const zhd = Number(calculated.railwayShipmentFact) || 0;
-    const pipe = Number(calculated.pipeShipmentFact) || 0;
-    const mnpp = Number(calculated.mnppShipmentFact) || 0;
-    const water = Number(calculated.waterShipmentFact) || 0;
+    const useShipmentPlan = row.enterprise === 'ННОС' && (row.product === 'Нефть' || row.product === 'ВГО');
 
-    const newShipmentFact = zhd + pipe + mnpp + water;
-    const oldShipmentFact = Number(row.shipmentFact) || 0;
-    calculated.shipmentFact = newShipmentFact;
-    if (Math.round(newShipmentFact) !== Math.round(oldShipmentFact) && row.edited) {
-        calculatedFields.push('shipmentFact');
+    if (useShipmentPlan) {
+        const shipmentPlan = Number(calculated.shipmentPlan) || 0;
+        if (shipmentPlan !== 0) {
+            calculated.shipmentFact = shipmentPlan;
+        }
+    } else {
+        const zhd = Number(calculated.railwayShipmentFact) || 0;
+        const pipe = Number(calculated.pipeShipmentFact) || 0;
+        const mnpp = Number(calculated.mnppShipmentFact) || 0;
+        const water = Number(calculated.waterShipmentFact) || 0;
+
+        const newShipmentFact = zhd + pipe + mnpp + water;
+        const oldShipmentFact = Number(row.shipmentFact) || 0;
+        calculated.shipmentFact = newShipmentFact;
+        if (Math.round(newShipmentFact) !== Math.round(oldShipmentFact) && row.edited) {
+            calculatedFields.push('shipmentFact');
+        }
     }
 
     calculated.editedFields = calculatedFields;
@@ -25,11 +34,14 @@ export const calculateAllRows = (
 ): any[] => {
     const processed = rows.map(calculateRow);
 
-    // Считаем оригинальные значения для сравнения
     let originalCalculated: any[] = [];
     if (isScenario && originalRows) {
         originalCalculated = calculateAllRowsInternal(originalRows);
     }
+
+    const isInverted = processed.length > 0 &&
+        processed[0].enterprise === 'ННОС' &&
+        (processed[0].product === 'Нефть' || processed[0].product === 'ВГО');
 
     let lastParkVolume = 0;
     let lastKnownRemains: number | null = null;
@@ -51,14 +63,21 @@ export const calculateAllRows = (
                 lastKnownRemains = tr;
             }
         } else if (lastKnownRemains !== null) {
-            const expected = Number(row.expected) || 0;
-            const shipment = Number(processed[i].shipmentFact) || 0;
-            const newRemains = lastKnownRemains - shipment + expected;
+            const expected = Math.abs(Number(row.expected) || 0);
+            const shipment = Math.abs(Number(processed[i].shipmentFact) || 0);
+
+            let newRemains: number;
+            if (isInverted) {
+                // ННОС Нефть/ВГО: Остатки = вчера + |Поставка| - |Переработка|
+                newRemains = lastKnownRemains + shipment - expected;
+            } else {
+                // Все остальные: Остатки = вчера + Выработка - Отгрузка
+                newRemains = lastKnownRemains + expected - shipment;
+            }
 
             processed[i].tradeRemains = newRemains;
             lastKnownRemains = newRemains;
 
-            // Подсвечиваем только если отличается от оригинального расчёта
             if (isScenario && originalCalculated.length > 0) {
                 const origRemains = Number(originalCalculated[i]?.tradeRemains) || 0;
                 if (Math.round(newRemains) !== Math.round(origRemains)) {
@@ -75,7 +94,6 @@ export const calculateAllRows = (
         const newFreeCapacity = parkVolume - tradeRemains;
         processed[i].freeCapacity = newFreeCapacity;
 
-        // Подсвечиваем свободную емкость если отличается от оригинала
         if (isScenario && originalCalculated.length > 0) {
             const origFreeCapacity = Number(originalCalculated[i]?.freeCapacity) || 0;
             if (Math.round(newFreeCapacity) !== Math.round(origFreeCapacity)) {
@@ -90,9 +108,12 @@ export const calculateAllRows = (
     return processed;
 };
 
-// Внутренний расчёт без подсветки — для получения оригинальных значений
 function calculateAllRowsInternal(rows: any[]): any[] {
     const processed = rows.map((row) => ({ ...row }));
+
+    const isInverted = processed.length > 0 &&
+        processed[0].enterprise === 'ННОС' &&
+        (processed[0].product === 'Нефть' || processed[0].product === 'ВГО');
 
     let lastParkVolume = 0;
     let lastKnownRemains: number | null = null;
@@ -108,11 +129,18 @@ function calculateAllRowsInternal(rows: any[]): any[] {
         }
         processed[i].parkVolume = lastParkVolume;
 
-        const zhd = Number(row.railwayShipmentFact) || 0;
-        const pipe = Number(row.pipeShipmentFact) || 0;
-        const mnpp = Number(row.mnppShipmentFact) || 0;
-        const water = Number(row.waterShipmentFact) || 0;
-        processed[i].shipmentFact = zhd + pipe + mnpp + water;
+        if (isInverted) {
+            const shipmentPlan = Number(row.shipmentPlan) || 0;
+            if (shipmentPlan !== 0) {
+                processed[i].shipmentFact = shipmentPlan;
+            }
+        } else {
+            const zhd = Number(row.railwayShipmentFact) || 0;
+            const pipe = Number(row.pipeShipmentFact) || 0;
+            const mnpp = Number(row.mnppShipmentFact) || 0;
+            const water = Number(row.waterShipmentFact) || 0;
+            processed[i].shipmentFact = zhd + pipe + mnpp + water;
+        }
 
         if (row.tradeRemains !== null && row.tradeRemains !== undefined) {
             const tr = Number(row.tradeRemains);
@@ -120,9 +148,14 @@ function calculateAllRowsInternal(rows: any[]): any[] {
                 lastKnownRemains = tr;
             }
         } else if (lastKnownRemains !== null) {
-            const expected = Number(row.expected) || 0;
-            const shipment = Number(processed[i].shipmentFact) || 0;
-            processed[i].tradeRemains = lastKnownRemains - shipment + expected;
+            const expected = Math.abs(Number(row.expected) || 0);
+            const shipment = Math.abs(Number(processed[i].shipmentFact) || 0);
+
+            if (isInverted) {
+                processed[i].tradeRemains = lastKnownRemains + shipment - expected;
+            } else {
+                processed[i].tradeRemains = lastKnownRemains + expected - shipment;
+            }
             lastKnownRemains = processed[i].tradeRemains;
         }
 
@@ -134,10 +167,7 @@ function calculateAllRowsInternal(rows: any[]): any[] {
     return processed;
 }
 
-
 export type IndicatorColor = 'red' | 'orange' | 'yellow' | null;
-
-
 
 export const getProductIndicator = (rows: any[]): IndicatorColor => {
     const now = new Date();
@@ -157,15 +187,13 @@ export const getProductIndicator = (rows: any[]): IndicatorColor => {
 
         dayIndex++;
         const freeCapacity = Number(row.freeCapacity) || 0;
-        const expected = Number(row.expected) || 0;
+        const expected = Math.abs(Number(row.expected) || 0);
         const tradeRemains = Number(row.tradeRemains) || 0;
 
-        // Остатки < 0 → жёлтый
         if (tradeRemains < 0) {
             hasNegativeRemains = true;
         }
 
-        // Сут. хода = свободная емкость / выработка
         if (expected > 0) {
             const daysLeft = freeCapacity / expected;
             if (daysLeft < 1) {
@@ -178,7 +206,6 @@ export const getProductIndicator = (rows: any[]): IndicatorColor => {
         }
     }
 
-    // Приоритет: красный > оранжевый > жёлтый
     if (hasLessThan1In10Days) return 'red';
     if (hasLessThan1After10Days) return 'orange';
     if (hasNegativeRemains) return 'yellow';
