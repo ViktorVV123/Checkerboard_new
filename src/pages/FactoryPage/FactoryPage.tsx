@@ -326,6 +326,21 @@ const FactoryPage: React.FC = () => {
         setActiveScenario(null);
         setEditedCells(new Map());
         setIsEditing(false);
+
+        // Пересчитываем индикаторы из оригинальных данных
+        if (enterprise && products.length > 0) {
+            const loadIndicators = async () => {
+                const indicators: Record<string, IndicatorColor> = {};
+                await Promise.all(
+                    products.map(async (p) => {
+                        const rows = await getProductData(enterprise, p);
+                        indicators[p] = getProductIndicator(rows);
+                    }),
+                );
+                setProductIndicators(indicators);
+            };
+            loadIndicators();
+        }
     };
 
     const handleFillDown = async (rowIds: number[], field: string, value: string) => {

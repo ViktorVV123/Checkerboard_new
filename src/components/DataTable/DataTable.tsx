@@ -37,17 +37,6 @@ const DataTable: React.FC<DataTableProps> = ({
     const tbodyRef = useRef<HTMLTableSectionElement>(null);
     const tableRef = useRef<HTMLTableElement>(null);
     const rowRectsRef = useRef<DOMRect[]>([]);
-    const [showSummary, setShowSummary] = useState(false);
-    const [colWidths, setColWidths] = useState<number[]>([]);
-
-    // Считываем ширину столбцов при открытии итогов
-    useEffect(() => {
-        if (showSummary && tableRef.current) {
-            const headerCells = tableRef.current.querySelectorAll('thead th');
-            const widths = Array.from(headerCells).map((th) => th.getBoundingClientRect().width);
-            setColWidths(widths);
-        }
-    }, [showSummary, data]);
 
     const formatValue = (value: any): string => {
         if (value === null || value === undefined) return '';
@@ -225,60 +214,8 @@ const DataTable: React.FC<DataTableProps> = ({
         return '';
     };
 
-    // Хелпер для рендера summary td с правильной шириной
-    const summaryTd = (index: number, value?: string, isLabel?: boolean) => (
-        <td
-            style={colWidths[index] ? { width: colWidths[index], minWidth: colWidths[index] } : undefined}
-            className={isLabel ? s.summaryLabel : undefined}
-        >
-            {value || ''}
-        </td>
-    );
-
     return (
         <div className={s.wrapper}>
-            <button
-                className={s.summaryToggle}
-                onClick={() => setShowSummary(!showSummary)}
-                title="Итоги"
-            >
-                {showSummary ? '✕' : 'Σ'}
-            </button>
-
-            {showSummary && colWidths.length > 0 && (
-                <div className={s.summaryOverlay}>
-                    <table className={s.summaryTable} style={{ tableLayout: 'fixed' }}>
-                        <tbody>
-                        <tr>
-                            {summaryTd(0, 'План', true)}
-                            {summaryTd(1, Math.round(totals.plan).toLocaleString('ru-RU'))}
-                            {columns.slice(2).map((col, i) => summaryTd(i + 2))}
-                        </tr>
-                        <tr>
-                            {summaryTd(0, 'ОБР', true)}
-                            {summaryTd(1, Math.round(totals.obr).toLocaleString('ru-RU'))}
-                            {columns.slice(2).map((col, i) => summaryTd(i + 2))}
-                        </tr>
-                        <tr>
-                            {summaryTd(0, 'Ожид', true)}
-                            {summaryTd(1, Math.round(Math.abs(totals.expected)).toLocaleString('ru-RU'))}
-                            {summaryTd(2, Math.round(Math.abs(totals.shipmentFact)).toLocaleString('ru-RU'))}
-                            {summaryTd(3, Math.round(Math.abs(totals.railwayShipmentFact)).toLocaleString('ru-RU'))}
-                            {summaryTd(4, Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU'))}
-                            {summaryTd(5, Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU'))}
-                            {summaryTd(6, Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU'))}
-                            {columns.slice(7).map((col, i) => summaryTd(i + 7))}
-                        </tr>
-                        <tr>
-                            {summaryTd(0, 'Объем парка', true)}
-                            {summaryTd(1, Math.round(totals.parkVolume).toLocaleString('ru-RU'))}
-                            {columns.slice(2).map((col, i) => summaryTd(i + 2))}
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
             <table className={s.table} ref={tableRef}>
                 <thead>
                 <tr>
@@ -370,6 +307,41 @@ const DataTable: React.FC<DataTableProps> = ({
                     </tr>
                 ))}
                 </tbody>
+                <tfoot>
+                <tr className={s.summaryRow}>
+                    <td className={s.summaryLabel}>План</td>
+                    <td>{Math.round(totals.plan).toLocaleString('ru-RU')}</td>
+                    {columns.slice(2).map((col) => (
+                        <td key={col.key}></td>
+                    ))}
+                </tr>
+                <tr className={s.summaryRow}>
+                    <td className={s.summaryLabel}>ОБР</td>
+                    <td>{Math.round(totals.obr).toLocaleString('ru-RU')}</td>
+                    {columns.slice(2).map((col) => (
+                        <td key={col.key}></td>
+                    ))}
+                </tr>
+                <tr className={s.summaryRow}>
+                    <td className={s.summaryLabel}>Ожид</td>
+                    <td>{Math.round(Math.abs(totals.expected)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.shipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.railwayShipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU')}</td>
+                    {columns.slice(7).map((col) => (
+                        <td key={col.key}></td>
+                    ))}
+                </tr>
+                <tr className={s.summaryRow}>
+                    <td className={s.summaryLabel}>Объем парка</td>
+                    <td>{Math.round(totals.parkVolume).toLocaleString('ru-RU')}</td>
+                    {columns.slice(2).map((col) => (
+                        <td key={col.key}></td>
+                    ))}
+                </tr>
+                </tfoot>
             </table>
         </div>
     );

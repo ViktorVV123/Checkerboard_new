@@ -1,7 +1,5 @@
 .wrapper {
-  overflow-x: auto;
   padding: 0 clamp(20px, 2vw, 40px);
-  position: relative;
 
   &::-webkit-scrollbar {
     height: 6px;
@@ -19,16 +17,10 @@
   font-size: var(--base-font);
   table-layout: auto;
 
-  thead {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-
   th {
     background-color: var(--bg-primary);
     color: var(--text-secondary);
-    padding: 0.3em 0.8em;
+    padding: calc(100vh / 400) 0.8em;
     text-align: right;
     font-weight: 600;
     font-size: 0.9em;
@@ -41,7 +33,7 @@
   }
 
   td {
-    padding: calc(100vh / 300) 0.8em;
+    padding: calc(100vh / 400) 0.8em;
     text-align: right;
     color: var(--text-primary);
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
@@ -53,7 +45,7 @@
     &:first-child {
       text-align: left;
       color: var(--text-secondary);
-      font-size: 1.1em;
+      font-size: 0.9em;
     }
   }
 
@@ -76,70 +68,28 @@
   background-color: rgba(34, 197, 94, 0.08);
 }
 
-// --- Summary overlay ---
-.summaryOverlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 5;
-
-}
-
-.summaryTable {
-  width: 100%;
-
-  font-size: var(--base-font);
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border);
-
-  border-radius: 10px;
-
+// --- Summary (tfoot) ---
+.summaryRow {
   td {
-    padding: 0.35em 1em 0.35em 1.2em;
-    text-align: right;
+    padding: calc(100vh / 400) 0.8em;
+    font-weight: 600;
+    font-size: 1em;
     color: var(--text-primary);
+    background-color: var(--bg-primary);
+    border-bottom: none;
+    text-align: right;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 
-  tr:last-child td {
-    border-bottom: none;
+  &:first-child td {
+    border-top: 2px solid var(--border);
   }
 }
 
 .summaryLabel {
   text-align: left !important;
   color: var(--text-secondary) !important;
-}
-
-.summaryToggle {
-  position: fixed;
-  bottom: 20px;
-  right: 40px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  z-index: 11;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-
-  &:hover {
-    border-color: var(--accent);
-    background-color: var(--accent);
-    color: #ffffff;
-  }
 }
 
 // --- Cell states ---
