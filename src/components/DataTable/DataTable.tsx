@@ -31,17 +31,23 @@ const DataTable: React.FC<DataTableProps> = ({
                                              }) => {
     const [editingCell, setEditingCell] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
-
-    // Fill-down state
     const [fillSource, setFillSource] = useState<{ rowIndex: number; colKey: string; value: any } | null>(null);
     const [fillTargetIndex, setFillTargetIndex] = useState<number | null>(null);
     const isDragging = useRef(false);
     const tbodyRef = useRef<HTMLTableSectionElement>(null);
     const tableRef = useRef<HTMLTableElement>(null);
     const rowRectsRef = useRef<DOMRect[]>([]);
+    const [showSummary, setShowSummary] = useState(false);
+    const [colWidths, setColWidths] = useState<number[]>([]);
 
-
-
+    // Считываем ширину столбцов при открытии итогов
+    useEffect(() => {
+        if (showSummary && tableRef.current) {
+            const headerCells = tableRef.current.querySelectorAll('thead th');
+            const widths = Array.from(headerCells).map((th) => th.getBoundingClientRect().width);
+            setColWidths(widths);
+        }
+    }, [showSummary, data]);
 
     const formatValue = (value: any): string => {
         if (value === null || value === undefined) return '';
@@ -64,7 +70,6 @@ const DataTable: React.FC<DataTableProps> = ({
     const processedDataRef = useRef(processedData);
     processedDataRef.current = processedData;
 
-    // --- Editing logic ---
     const handleCellClick = (rowId: number, col: Column, currentValue: any) => {
         if (!editable || !col.editable) return;
         if (isDragging.current) return;
@@ -85,7 +90,6 @@ const DataTable: React.FC<DataTableProps> = ({
         if (e.key === 'Escape') setEditingCell(null);
     };
 
-    // --- Fill-down logic ---
     const handleFillHandleMouseDown = useCallback(
         (e: React.MouseEvent, rowIndex: number, colKey: string, value: any) => {
             e.preventDefault();
@@ -94,7 +98,6 @@ const DataTable: React.FC<DataTableProps> = ({
             setFillSource({ rowIndex, colKey, value });
             setFillTargetIndex(rowIndex);
 
-            // Snapshot row positions at drag start
             if (tbodyRef.current) {
                 const rows = tbodyRef.current.querySelectorAll('tr');
                 rowRectsRef.current = Array.from(rows).map((r) => r.getBoundingClientRect());
@@ -116,12 +119,9 @@ const DataTable: React.FC<DataTableProps> = ({
             const sourceIdx = fillSourceRef.current.rowIndex;
             const y = e.clientY;
 
-            // Find the last row whose top is above or at the cursor position
-            // This ensures continuous selection even with fast mouse movement
             let targetIdx = sourceIdx;
             for (let i = sourceIdx + 1; i < rects.length; i++) {
                 const rect = rects[i];
-                // Row center determines if we've "entered" this row
                 const rowCenter = rect.top + rect.height / 2;
                 if (y >= rowCenter) {
                     targetIdx = i;
@@ -183,20 +183,14 @@ const DataTable: React.FC<DataTableProps> = ({
         );
     };
 
-    // --- Totals ---
     const now = new Date();
     const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
 
     const totals: Record<string, number> = {
-        plan: 0,
-        expected: 0,
-        shipmentFact: 0,
-        railwayShipmentFact: 0,
-        pipeShipmentFact: 0,
-        mnppShipmentFact: 0,
-        waterShipmentFact: 0,
-        obr: 0,
-        parkVolume: 0,
+        plan: 0, expected: 0, shipmentFact: 0,
+        railwayShipmentFact: 0, pipeShipmentFact: 0,
+        mnppShipmentFact: 0, waterShipmentFact: 0,
+        obr: 0, parkVolume: 0,
     };
 
     processedData.forEach((row) => {
@@ -220,7 +214,6 @@ const DataTable: React.FC<DataTableProps> = ({
     const parkRow = processedData.find((r) => Number(r.parkVolume) > 0);
     if (parkRow) totals.parkVolume = Number(parkRow.parkVolume);
 
-
     const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
     const weekFromNow = new Date(now);
     weekFromNow.setDate(weekFromNow.getDate() + 6);
@@ -232,8 +225,60 @@ const DataTable: React.FC<DataTableProps> = ({
         return '';
     };
 
+    // Хелпер для рендера summary td с правильной шириной
+    const summaryTd = (index: number, value?: string, isLabel?: boolean) => (
+        <td
+            style={colWidths[index] ? { width: colWidths[index], minWidth: colWidths[index] } : undefined}
+            className={isLabel ? s.summaryLabel : undefined}
+        >
+            {value || ''}
+        </td>
+    );
+
     return (
         <div className={s.wrapper}>
+            <button
+                className={s.summaryToggle}
+                onClick={() => setShowSummary(!showSummary)}
+                title="Итоги"
+            >
+                {showSummary ? '✕' : 'Σ'}
+            </button>
+
+            {showSummary && colWidths.length > 0 && (
+                <div className={s.summaryOverlay}>
+                    <table className={s.summaryTable} style={{ tableLayout: 'fixed' }}>
+                        <tbody>
+                        <tr>
+                            {summaryTd(0, 'План', true)}
+                            {summaryTd(1, Math.round(totals.plan).toLocaleString('ru-RU'))}
+                            {columns.slice(2).map((col, i) => summaryTd(i + 2))}
+                        </tr>
+                        <tr>
+                            {summaryTd(0, 'ОБР', true)}
+                            {summaryTd(1, Math.round(totals.obr).toLocaleString('ru-RU'))}
+                            {columns.slice(2).map((col, i) => summaryTd(i + 2))}
+                        </tr>
+                        <tr>
+                            {summaryTd(0, 'Ожид', true)}
+                            {summaryTd(1, Math.round(Math.abs(totals.expected)).toLocaleString('ru-RU'))}
+                            {summaryTd(2, Math.round(Math.abs(totals.shipmentFact)).toLocaleString('ru-RU'))}
+                            {summaryTd(3, Math.round(Math.abs(totals.railwayShipmentFact)).toLocaleString('ru-RU'))}
+                            {summaryTd(4, Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU'))}
+                            {summaryTd(5, Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU'))}
+                            {summaryTd(6, Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU'))}
+                            {columns.slice(7).map((col, i) => summaryTd(i + 7))}
+                        </tr>
+                        <tr>
+                            {summaryTd(0, 'Объем парка', true)}
+                            {summaryTd(1, Math.round(totals.parkVolume).toLocaleString('ru-RU'))}
+                            {columns.slice(2).map((col, i) => summaryTd(i + 2))}
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
             <table className={s.table} ref={tableRef}>
                 <thead>
                 <tr>
@@ -255,15 +300,12 @@ const DataTable: React.FC<DataTableProps> = ({
                             const cellValue = row[col.key];
                             const inFillRange = isCellInFillRange(rowIndex, col.key);
 
-                            // Остатки < 0 → жёлтый текст
-                            // Остатки < 0 → жёлтый текст (только для текущих и будущих дней)
                             const isNegativeRemains =
                                 col.key === 'tradeRemains' &&
                                 Number(row.date) >= today &&
                                 cellValue !== null && cellValue !== undefined &&
                                 Number(cellValue) < 0;
-                            // Свободная емкость < Выработка → красный текст
-                            // Свободная емкость < Выработка → красный текст (только для текущих и будущих дней)
+
                             const isLowCapacity =
                                 col.key === 'freeCapacity' &&
                                 Number(row.date) >= today &&
@@ -328,41 +370,6 @@ const DataTable: React.FC<DataTableProps> = ({
                     </tr>
                 ))}
                 </tbody>
-                <tfoot>
-                <tr className={s.summaryRow}>
-                    <td style={{color:'grey'}}>План</td>
-                    <td>{Math.round(totals.plan).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
-                </tr>
-                <tr className={s.summaryRow}>
-                    <td style={{color:'grey'}}>ОБР</td>
-                    <td>{Math.round(totals.obr).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
-                </tr>
-                <tr className={s.summaryRow}>
-                    <td style={{color:'grey'}}>Ожид</td>
-                    <td>{Math.round(Math.abs(totals.expected)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.shipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.railwayShipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
-                </tr>
-                <tr className={s.summaryRow}>
-                    <td style={{color:'grey'}}>Объем парка</td>
-                    <td>{Math.round(totals.parkVolume).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
-                </tr>
-                </tfoot>
             </table>
         </div>
     );
