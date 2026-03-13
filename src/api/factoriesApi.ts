@@ -64,3 +64,8 @@ export const getScenarioData = async (scenarioId: number): Promise<any[]> => {
     const { data } = await api.get(`/scenarios/${scenarioId}/data`);
     return data;
 };
+
+export const approveScenario = async (id: number, approvedBy: string): Promise<any> => {
+    const { data } = await api.post(`/scenarios/${id}/approve`, { approvedBy });
+    return data;
+};

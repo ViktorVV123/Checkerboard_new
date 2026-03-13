@@ -12,7 +12,7 @@ import {
     deleteScenario,
     saveScenarioEdit,
     saveSnapshot,
-    getScenarioData,
+    getScenarioData, approveScenario,
 } from '../../api/factoriesApi';
 import * as s from './FactoryPage.module.scss';
 import { getProductIndicator, IndicatorColor } from '@/utils/calculations';
@@ -45,6 +45,8 @@ const formatDate = (dateNum: number): string => {
     ];
     return `${parseInt(day)}.${months[parseInt(month)]}`;
 };
+
+
 
 const FactoryPage: React.FC = () => {
     const [enterprises, setEnterprises] = useState<string[]>([]);
@@ -319,7 +321,7 @@ const FactoryPage: React.FC = () => {
 
     const handleSelectScenario = (scenario: any) => {
         setActiveScenario(scenario);
-        setIsEditing(true);
+        setIsEditing(!scenario.approved); // утверждённый — только просмотр
     };
 
     const handleBackToOriginal = () => {
@@ -341,6 +343,54 @@ const FactoryPage: React.FC = () => {
             };
             loadIndicators();
         }
+    };
+
+    const handleApproveScenario = async () => {
+        if (!activeScenario || !product) return;
+
+        const confirmApprove = window.confirm(
+            `Утвердить сценарий "${activeScenario.name}"? Все текущие данные будут сохранены.`
+        );
+        if (!confirmApprove) return;
+
+        // Автоматически сохраняем снапшот перед утверждением
+        const fields = [
+            'date', 'enterprise', 'product', 'expected', 'plan', 'fact',
+            'stage', 'tradeRemains', 'freeCapacity', 'parkVolume',
+            'railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact',
+            'waterShipmentFact', 'shipmentFact', 'passport', 'passportForecast',
+            'unregisteredShipment', 'pourShipment', 'obr',
+            'shipmentPlan', 'railwayShipment', 'waterShipment', 'pipe',
+            'mnpp', 'autoShipment', 'autoShipmentFact',
+        ];
+
+        const rows: { originalId: number; field: string; value: string }[] = [];
+        displayData.forEach((row) => {
+            fields.forEach((field) => {
+                if (row[field] !== null && row[field] !== undefined) {
+                    rows.push({
+                        originalId: row.id,
+                        field,
+                        value: String(row[field]),
+                    });
+                }
+            });
+        });
+
+        await saveSnapshot(activeScenario.id, product, rows);
+
+        // Утверждаем
+        const approved = await approveScenario(activeScenario.id, 'user');
+        setScenarios((prev) =>
+            prev.map((sc) => ({
+                ...sc,
+                approved: sc.id === approved.id,
+                approvedAt: sc.id === approved.id ? approved.approvedAt : null,
+                approvedBy: sc.id === approved.id ? approved.approvedBy : null,
+            }))
+        );
+        setActiveScenario(approved);
+        setIsEditing(false);
     };
 
     const handleFillDown = async (rowIds: number[], field: string, value: string) => {
@@ -420,6 +470,7 @@ const FactoryPage: React.FC = () => {
         return null;
     }
 
+
     return (
         <div className={s.page}>
             <Header
@@ -436,30 +487,40 @@ const FactoryPage: React.FC = () => {
                     >
                         Оригинал
                     </button>
-                    {scenarios.map((sc) => (
-                        <div key={sc.id} className={s.scenarioItem}>
-                            <button
-                                className={`${s.scenarioBtn} ${activeScenario?.id === sc.id ? s.active : ''}`}
-                                onClick={() => handleSelectScenario(sc)}
-                                title={sc.comment || ''}
-                            >
-                                <span className={s.scenarioName}>{sc.name}</span>
-                                <span className={s.scenarioAuthor}>{sc.author}</span>
-                            </button>
-                            <button
-                                className={s.scenarioDelete}
-                                onClick={() => handleDeleteScenario(sc.id)}
-                            >
-                                ×
-                            </button>
-                        </div>
-                    ))}
+                    {scenarios.sort((a, b) => (b.approved ? 1 : 0) - (a.approved ? 1 : 0))
+                        .map((sc) => (
+                            <div key={sc.id} className={s.scenarioItem}>
+                                <button
+                                    className={`${s.scenarioBtn} ${activeScenario?.id === sc.id ? s.active : ''} ${sc.approved ? s.approved : ''}`}
+                                    onClick={() => handleSelectScenario(sc)}
+                                    title={sc.comment || ''}
+                                >
+                <span className={s.scenarioName}>
+                    {sc.approved && '✓ '}{sc.name}
+                </span>
+                                    <span className={s.scenarioAuthor}>{sc.author}</span>
+                                </button>
+                                <button
+                                    className={s.scenarioDelete}
+                                    onClick={() => handleDeleteScenario(sc.id)}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
                 </div>
                 <div className={s.scenarioRight}>
                     {activeScenario && (
-                        <button className={s.saveBtn} onClick={handleSaveScenario}>
-                            Сохранить
-                        </button>
+                        <>
+                            <button className={s.saveBtn} onClick={handleSaveScenario}>
+                                Сохранить
+                            </button>
+                            {!activeScenario.approved && (
+                                <button className={s.approveBtn} onClick={handleApproveScenario}>
+                                    Утвердить
+                                </button>
+                            )}
+                        </>
                     )}
                     <button className={s.createBtn} onClick={() => setShowScenarioModal(true)}>
                         Создать сценарий
