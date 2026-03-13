@@ -53,6 +53,7 @@ const FactoryPage: React.FC = () => {
     const [product, setProduct] = useState<string>('');
     const [data, setData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [authError, setAuthError] = useState(false);
 
     const [scenarios, setScenarios] = useState<any[]>([]);
     const [activeScenario, setActiveScenario] = useState<any | null>(null);
@@ -67,11 +68,14 @@ const FactoryPage: React.FC = () => {
 
     const loadScenarios = async () => {
         if (!enterprise) return;
-        const list = await getScenarios(enterprise);
-        setScenarios(list);
+        try {
+            const list = await getScenarios(enterprise);
+            setScenarios(list);
+        } catch (err: any) {
+            if (err?.response?.status === 401) setAuthError(true);
+        }
     };
 
-    // Применяем правки к данным для отображения
     const displayData = data.map((row) => {
         const editedRow = { ...row };
         let hasEdits = false;
@@ -89,27 +93,27 @@ const FactoryPage: React.FC = () => {
         return { ...editedRow, edited: hasEdits, editedFields };
     });
 
-    // Загрузка индикаторов для всех продуктов — только при смене предприятия/продуктов
     useEffect(() => {
         if (!enterprise || products.length === 0) return;
 
         const loadIndicators = async () => {
-            const indicators: Record<string, IndicatorColor> = {};
-
-            await Promise.all(
-                products.map(async (p) => {
-                    const rows = await getProductData(enterprise, p);
-                    indicators[p] = getProductIndicator(rows);
-                }),
-            );
-
-            setProductIndicators(indicators);
+            try {
+                const indicators: Record<string, IndicatorColor> = {};
+                await Promise.all(
+                    products.map(async (p) => {
+                        const rows = await getProductData(enterprise, p);
+                        indicators[p] = getProductIndicator(rows);
+                    }),
+                );
+                setProductIndicators(indicators);
+            } catch (err: any) {
+                if (err?.response?.status === 401) setAuthError(true);
+            }
         };
 
         loadIndicators();
     }, [enterprise, products]);
 
-    // Обновление индикатора текущего продукта при редактировании в сценарии
     useEffect(() => {
         if (!activeScenario || !product || data.length === 0) return;
 
@@ -121,18 +125,26 @@ const FactoryPage: React.FC = () => {
     }, [editedCells]);
 
     useEffect(() => {
-        getEnterprises().then((list) => {
-            setEnterprises(list);
-            if (list.length > 0) setEnterprise(list[0]);
-        });
+        getEnterprises()
+            .then((list) => {
+                setEnterprises(list);
+                if (list.length > 0) setEnterprise(list[0]);
+            })
+            .catch((err: any) => {
+                if (err?.response?.status === 401) setAuthError(true);
+            });
     }, []);
 
     useEffect(() => {
         if (!enterprise) return;
-        getProducts(enterprise).then((list) => {
-            setProducts(list);
-            if (list.length > 0) setProduct(list[0]);
-        });
+        getProducts(enterprise)
+            .then((list) => {
+                setProducts(list);
+                if (list.length > 0) setProduct(list[0]);
+            })
+            .catch((err: any) => {
+                if (err?.response?.status === 401) setAuthError(true);
+            });
         loadScenarios();
         setActiveScenario(null);
         setEditedCells(new Map());
@@ -142,10 +154,15 @@ const FactoryPage: React.FC = () => {
     useEffect(() => {
         if (!enterprise || !product) return;
         setLoading(true);
-        getProductData(enterprise, product).then((rows) => {
-            setData(rows);
-            setLoading(false);
-        });
+        getProductData(enterprise, product)
+            .then((rows) => {
+                setData(rows);
+                setLoading(false);
+            })
+            .catch((err: any) => {
+                if (err?.response?.status === 401) setAuthError(true);
+                setLoading(false);
+            });
     }, [enterprise, product]);
 
     useEffect(() => {
@@ -154,34 +171,38 @@ const FactoryPage: React.FC = () => {
     }, [activeScenario, data, product]);
 
     const loadScenarioEdits = async (scenarioId: number) => {
-        const scenarioData = await getScenarioData(scenarioId);
+        try {
+            const scenarioData = await getScenarioData(scenarioId);
 
-        if (scenarioData.length > 0) {
-            const currentIds = new Set(data.map((r) => r.id));
-            const relevantRows = scenarioData.filter((r) => currentIds.has(r.id));
+            if (scenarioData.length > 0) {
+                const currentIds = new Set(data.map((r) => r.id));
+                const relevantRows = scenarioData.filter((r) => currentIds.has(r.id));
 
-            if (relevantRows.length > 0) {
-                const newEdited = new Map<string, string>();
-                relevantRows.forEach((row) => {
-                    Object.entries(row).forEach(([field, value]) => {
-                        if (field !== 'id' && value !== null && value !== undefined) {
-                            const originalRow = data.find((r) => r.id === row.id);
-                            const originalValue = originalRow
-                                ? String(Math.round(Number(originalRow[field]) || 0))
-                                : '0';
-                            const savedValue = String(Math.round(Number(value) || 0));
-                            if (savedValue !== originalValue) {
-                                newEdited.set(`${row.id}-${field}`, String(value));
+                if (relevantRows.length > 0) {
+                    const newEdited = new Map<string, string>();
+                    relevantRows.forEach((row) => {
+                        Object.entries(row).forEach(([field, value]) => {
+                            if (field !== 'id' && value !== null && value !== undefined) {
+                                const originalRow = data.find((r) => r.id === row.id);
+                                const originalValue = originalRow
+                                    ? String(Math.round(Number(originalRow[field]) || 0))
+                                    : '0';
+                                const savedValue = String(Math.round(Number(value) || 0));
+                                if (savedValue !== originalValue) {
+                                    newEdited.set(`${row.id}-${field}`, String(value));
+                                }
                             }
-                        }
+                        });
                     });
-                });
-                setEditedCells(newEdited);
+                    setEditedCells(newEdited);
+                } else {
+                    setEditedCells(new Map());
+                }
             } else {
                 setEditedCells(new Map());
             }
-        } else {
-            setEditedCells(new Map());
+        } catch (err: any) {
+            if (err?.response?.status === 401) setAuthError(true);
         }
     };
 
@@ -378,6 +399,11 @@ const FactoryPage: React.FC = () => {
             }
         }
     };
+
+    // Если 401 — auth.ts уже показал overlay
+    if (authError) {
+        return null;
+    }
 
     return (
         <div className={s.page}>
