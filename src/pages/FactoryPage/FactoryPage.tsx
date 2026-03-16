@@ -12,7 +12,8 @@ import {
     deleteScenario,
     saveScenarioEdit,
     saveSnapshot,
-    getScenarioData, approveScenario,
+    getScenarioData,
+    approveScenario,
 } from '../../api/factoriesApi';
 import * as s from './FactoryPage.module.scss';
 import { getProductIndicator, IndicatorColor } from '@/utils/calculations';
@@ -46,8 +47,6 @@ const formatDate = (dateNum: number): string => {
     return `${parseInt(day)}.${months[parseInt(month)]}`;
 };
 
-
-
 const FactoryPage: React.FC = () => {
     const [enterprises, setEnterprises] = useState<string[]>([]);
     const [enterprise, setEnterprise] = useState<string>('');
@@ -65,6 +64,7 @@ const FactoryPage: React.FC = () => {
     const [scenarioName, setScenarioName] = useState('');
     const [scenarioAuthor, setScenarioAuthor] = useState('');
     const [scenarioComment, setScenarioComment] = useState('');
+    const [createFromApproved, setCreateFromApproved] = useState(false);
 
     const [productIndicators, setProductIndicators] = useState<Record<string, IndicatorColor>>({});
 
@@ -261,19 +261,20 @@ const FactoryPage: React.FC = () => {
         setEditedCells(newEdited);
     };
 
+    const getSnapshotFields = () => [
+        'date', 'enterprise', 'product', 'expected', 'plan', 'fact',
+        'stage', 'tradeRemains', 'freeCapacity', 'parkVolume',
+        'railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact',
+        'waterShipmentFact', 'shipmentFact', 'passport', 'passportForecast',
+        'unregisteredShipment', 'pourShipment', 'obr',
+        'shipmentPlan', 'railwayShipment', 'waterShipment', 'pipe',
+        'mnpp', 'autoShipment', 'autoShipmentFact',
+    ];
+
     const handleSaveScenario = async () => {
         if (!activeScenario || !product) return;
 
-        const fields = [
-            'date', 'enterprise', 'product', 'expected', 'plan', 'fact',
-            'stage', 'tradeRemains', 'freeCapacity', 'parkVolume',
-            'railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact',
-            'waterShipmentFact', 'shipmentFact', 'passport', 'passportForecast',
-            'unregisteredShipment', 'pourShipment', 'obr',
-            'shipmentPlan', 'railwayShipment', 'waterShipment', 'pipe',
-            'mnpp', 'autoShipment', 'autoShipmentFact',
-        ];
-
+        const fields = getSnapshotFields();
         const rows: { originalId: number; field: string; value: string }[] = [];
 
         displayData.forEach((row) => {
@@ -294,12 +295,37 @@ const FactoryPage: React.FC = () => {
 
     const handleCreateScenario = async () => {
         if (!scenarioName.trim() || !scenarioAuthor.trim()) return;
+
         const scenario = await createScenario({
             name: scenarioName,
             author: scenarioAuthor,
             enterprise,
             comment: scenarioComment,
         });
+
+        // Если создаём от утверждённого — копируем его данные
+        if (createFromApproved) {
+            const approvedScenario = scenarios.find((sc) => sc.approved);
+            if (approvedScenario) {
+                const approvedData = await getScenarioData(approvedScenario.id);
+                if (approvedData.length > 0) {
+                    const rows: { originalId: number; field: string; value: string }[] = [];
+                    approvedData.forEach((row) => {
+                        Object.entries(row).forEach(([field, value]) => {
+                            if (field !== 'id' && value !== null && value !== undefined) {
+                                rows.push({
+                                    originalId: row.id,
+                                    field,
+                                    value: String(value),
+                                });
+                            }
+                        });
+                    });
+                    await saveSnapshot(scenario.id, product, rows);
+                }
+            }
+        }
+
         setScenarios([scenario, ...scenarios]);
         setActiveScenario(scenario);
         setIsEditing(true);
@@ -307,11 +333,12 @@ const FactoryPage: React.FC = () => {
         setScenarioName('');
         setScenarioAuthor('');
         setScenarioComment('');
+        setCreateFromApproved(false);
     };
 
     const handleDeleteScenario = async (id: number) => {
         await deleteScenario(id);
-        setScenarios(scenarios.filter((s) => s.id !== id));
+        setScenarios(scenarios.filter((sc) => sc.id !== id));
         if (activeScenario?.id === id) {
             setActiveScenario(null);
             setEditedCells(new Map());
@@ -321,7 +348,7 @@ const FactoryPage: React.FC = () => {
 
     const handleSelectScenario = (scenario: any) => {
         setActiveScenario(scenario);
-        setIsEditing(!scenario.approved); // утверждённый — только просмотр
+        setIsEditing(!scenario.approved);
     };
 
     const handleBackToOriginal = () => {
@@ -329,7 +356,6 @@ const FactoryPage: React.FC = () => {
         setEditedCells(new Map());
         setIsEditing(false);
 
-        // Пересчитываем индикаторы из оригинальных данных
         if (enterprise && products.length > 0) {
             const loadIndicators = async () => {
                 const indicators: Record<string, IndicatorColor> = {};
@@ -353,17 +379,7 @@ const FactoryPage: React.FC = () => {
         );
         if (!confirmApprove) return;
 
-        // Автоматически сохраняем снапшот перед утверждением
-        const fields = [
-            'date', 'enterprise', 'product', 'expected', 'plan', 'fact',
-            'stage', 'tradeRemains', 'freeCapacity', 'parkVolume',
-            'railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact',
-            'waterShipmentFact', 'shipmentFact', 'passport', 'passportForecast',
-            'unregisteredShipment', 'pourShipment', 'obr',
-            'shipmentPlan', 'railwayShipment', 'waterShipment', 'pipe',
-            'mnpp', 'autoShipment', 'autoShipmentFact',
-        ];
-
+        const fields = getSnapshotFields();
         const rows: { originalId: number; field: string; value: string }[] = [];
         displayData.forEach((row) => {
             fields.forEach((field) => {
@@ -379,7 +395,6 @@ const FactoryPage: React.FC = () => {
 
         await saveSnapshot(activeScenario.id, product, rows);
 
-        // Утверждаем
         const approved = await approveScenario(activeScenario.id, 'user');
         setScenarios((prev) =>
             prev.map((sc) => ({
@@ -465,11 +480,14 @@ const FactoryPage: React.FC = () => {
         }
     };
 
-    // Если 401 — auth.ts уже показал overlay
     if (authError) {
         return null;
     }
 
+    const closeModal = () => {
+        setShowScenarioModal(false);
+        setCreateFromApproved(false);
+    };
 
     return (
         <div className={s.page}>
@@ -487,7 +505,8 @@ const FactoryPage: React.FC = () => {
                     >
                         Оригинал
                     </button>
-                    {scenarios.sort((a, b) => (b.approved ? 1 : 0) - (a.approved ? 1 : 0))
+                    {[...scenarios]
+                        .sort((a, b) => (b.approved ? 1 : 0) - (a.approved ? 1 : 0))
                         .map((sc) => (
                             <div key={sc.id} className={s.scenarioItem}>
                                 <button
@@ -495,9 +514,9 @@ const FactoryPage: React.FC = () => {
                                     onClick={() => handleSelectScenario(sc)}
                                     title={sc.comment || ''}
                                 >
-                <span className={s.scenarioName}>
-                    {sc.approved && '✓ '}{sc.name}
-                </span>
+                                    <span className={s.scenarioName}>
+                                        {sc.approved && '✓ '}{sc.name}
+                                    </span>
                                     <span className={s.scenarioAuthor}>{sc.author}</span>
                                 </button>
                                 <button
@@ -510,17 +529,18 @@ const FactoryPage: React.FC = () => {
                         ))}
                 </div>
                 <div className={s.scenarioRight}>
-                    {activeScenario && (
+                    {activeScenario && !activeScenario.approved && (
                         <>
                             <button className={s.saveBtn} onClick={handleSaveScenario}>
                                 Сохранить
                             </button>
-                            {!activeScenario.approved && (
-                                <button className={s.approveBtn} onClick={handleApproveScenario}>
-                                    Утвердить
-                                </button>
-                            )}
+                            <button className={s.approveBtn} onClick={handleApproveScenario}>
+                                Утвердить
+                            </button>
                         </>
+                    )}
+                    {activeScenario && activeScenario.approved && (
+                        <span className={s.approvedBadge}>Утверждён</span>
                     )}
                     <button className={s.createBtn} onClick={() => setShowScenarioModal(true)}>
                         Создать сценарий
@@ -532,7 +552,7 @@ const FactoryPage: React.FC = () => {
             </div>
 
             {showScenarioModal && (
-                <div className={s.modal} onClick={() => setShowScenarioModal(false)}>
+                <div className={s.modal} onClick={closeModal}>
                     <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
                         <h3>Новый сценарий</h3>
                         <input
@@ -557,8 +577,18 @@ const FactoryPage: React.FC = () => {
                             rows={3}
                             style={{ marginTop: '8px' }}
                         />
+                        {scenarios.some((sc) => sc.approved) && (
+                            <label className={s.checkboxLabel} style={{ marginTop: '12px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={createFromApproved}
+                                    onChange={(e) => setCreateFromApproved(e.target.checked)}
+                                />
+                                <span>Создать на основе утверждённого сценария</span>
+                            </label>
+                        )}
                         <div className={s.modalButtons}>
-                            <button className={s.modalCancel} onClick={() => setShowScenarioModal(false)}>
+                            <button className={s.modalCancel} onClick={closeModal}>
                                 Отмена
                             </button>
                             <button className={s.modalSave} onClick={handleCreateScenario}>
