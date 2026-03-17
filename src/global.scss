@@ -15,7 +15,7 @@
     --forecast-bg: rgba(239, 68, 68, 0.08);
     --forecast-border: rgba(239, 68, 68, 0.3);
     --summary-bg: #111113;
-    --base-font: calc(100vh / 75);
+    --base-font: clamp(11px, calc(100vh / 95), 15px);
     --tabs-font: clamp(16px, 1.4vh, 18px);
     --table-seven-day: rgba(255, 255, 255, 0.04);
 }

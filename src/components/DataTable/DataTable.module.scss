@@ -20,7 +20,7 @@
   th {
     background-color: var(--bg-primary);
     color: var(--text-secondary);
-    padding: calc(100vh / 400) 0.8em;
+    padding: clamp(2px, calc(100vh / 500), 6px) 0.8em;
     text-align: right;
     font-weight: 600;
     font-size: 0.9em;
@@ -33,7 +33,7 @@
   }
 
   td {
-    padding: calc(100vh / 400) 0.8em;
+    padding: clamp(2px, calc(100vh / 500), 6px) 0.8em;
     text-align: right;
     color: var(--text-primary);
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
