@@ -30,14 +30,16 @@ const deleteCookie = (n: string) => {
 };
 
 /* ───────── 2. URL и константы ────────────────────────────── */
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://checkerboard.pro.lukoil.com/api';
+/*const API_URL = 'http://localhost:3000';*/
 const REFRESH_URL = `${API_URL}/auth/refresh`;
-const IDM_URL = 'https://csc-idm.pro.lukoil.com/?env=Chess';
+const IDM_URL = 'https://csc-idm.pro.lukoil.com/?env=ChkBoard';
 
 const isProdHost = window.location.hostname === 'checkerboard.pro.lukoil.com';
 
 // DEV токен — только для локальной разработки
-const DEV_ACCESS_TOKEN = 'dev-chess-portal-2026-secret';
+// dev-chess-portal-2026-secret
+const DEV_ACCESS_TOKEN = '';
 
 /* ───────── 3. Читаем токены из URL (после IdM) ─────────── */
 let tokensReceivedFromUrl = false;
