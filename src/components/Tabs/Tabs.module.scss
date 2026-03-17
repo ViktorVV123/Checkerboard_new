@@ -26,7 +26,7 @@
   background-color: transparent;
   color: var(--tab-inactive);
   cursor: pointer;
-  font-size: var(--tabs-font);
+  font-size: clamp(15px, 1.3vh, 17px);
   font-weight: 500;
   white-space: nowrap;
   border-bottom: 2px solid transparent;

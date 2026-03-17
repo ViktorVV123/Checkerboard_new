@@ -17,6 +17,7 @@ import {
 } from '../../api/factoriesApi';
 import * as s from './FactoryPage.module.scss';
 import { getProductIndicator, IndicatorColor } from '@/utils/calculations';
+import {exportToExcel} from "@/utils/exportToExcel";
 
 const getColumns = (enterprise: string, product: string) => {
     const isNnosSpecial = enterprise === 'ННОС' && (product === 'Нефть' || product === 'ВГЛ');
@@ -67,6 +68,20 @@ const FactoryPage: React.FC = () => {
     const [createFromApproved, setCreateFromApproved] = useState(false);
 
     const [productIndicators, setProductIndicators] = useState<Record<string, IndicatorColor>>({});
+
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExport = async () => {
+        if (isExporting) return;
+        setIsExporting(true);
+        try {
+            const scenarioLabel = activeScenario ? `_${activeScenario.name}` : '_оригинал';
+            const filename = `${enterprise}_${product}${scenarioLabel}.xlsx`;
+            exportToExcel(displayData, getColumns(enterprise, product), formatDate, filename);
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const loadScenarios = async () => {
         if (!enterprise) return;
@@ -495,6 +510,8 @@ const FactoryPage: React.FC = () => {
                 enterprise={enterprise}
                 enterprises={enterprises}
                 onEnterpriseChange={setEnterprise}
+                onExport={handleExport}
+                isExporting={isExporting}
             />
 
             <div className={s.scenarioBar}>

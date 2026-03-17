@@ -1,6 +1,7 @@
 import React from 'react';
-import {useTheme} from '../../context/ThemeContext';
+import { useTheme } from '../../context/ThemeContext';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import DownloadIcon from '@mui/icons-material/Download';
 import * as s from './Header.module.scss';
 
 const powerBiLinks: Record<string, string> = {
@@ -13,10 +14,12 @@ interface HeaderProps {
     enterprise: string;
     enterprises: string[];
     onEnterpriseChange: (enterprise: string) => void;
+    onExport: () => void;
+    isExporting: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({enterprise, enterprises, onEnterpriseChange}) => {
-    const {theme, toggleTheme} = useTheme();
+const Header: React.FC<HeaderProps> = ({ enterprise, enterprises, onEnterpriseChange, onExport,isExporting }) => {
+    const { theme, toggleTheme } = useTheme();
 
     return (
         <header className={s.header}>
@@ -56,6 +59,16 @@ const Header: React.FC<HeaderProps> = ({enterprise, enterprises, onEnterpriseCha
                         Power BI отчет
                     </a>
                 )}
+
+                <button
+                    className={s.exportBtn}
+                    onClick={onExport}
+                    disabled={isExporting}
+                    title="Выгрузить в Excel"
+                >
+                    <DownloadIcon style={{fontSize: 16}}/>
+                    {isExporting ? 'Загрузка...' : 'Excel'}
+                </button>
 
                 <div className={s.selector}>
                     {enterprises.map((e) => (
