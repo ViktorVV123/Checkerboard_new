@@ -1,3 +1,4 @@
+// src/api/factoriesApi.ts
 import { api } from './auth';
 
 export const getEnterprises = async (): Promise<string[]> => {
@@ -17,8 +18,10 @@ export const getProductData = async (enterprise: string, product: string): Promi
     return data;
 };
 
-export const getScenarios = async (enterprise: string): Promise<any[]> => {
-    const { data } = await api.get(`/scenarios?enterprise=${encodeURIComponent(enterprise)}`);
+export const getScenarios = async (enterprise: string, username?: string): Promise<any[]> => {
+    const params = new URLSearchParams({ enterprise });
+    if (username) params.append('username', username);
+    const { data } = await api.get(`/scenarios?${params.toString()}`);
     return data;
 };
 
@@ -27,6 +30,7 @@ export const createScenario = async (body: {
     author: string;
     enterprise: string;
     comment?: string;
+    isDraft?: boolean;
 }): Promise<any> => {
     const { data } = await api.post('/scenarios', body);
     return data;
@@ -67,5 +71,15 @@ export const getScenarioData = async (scenarioId: number): Promise<any[]> => {
 
 export const approveScenario = async (id: number, approvedBy: string): Promise<any> => {
     const { data } = await api.post(`/scenarios/${id}/approve`, { approvedBy });
+    return data;
+};
+
+export const publishScenario = async (id: number): Promise<any> => {
+    const { data } = await api.post(`/scenarios/${id}/publish`);
+    return data;
+};
+
+export const unpublishScenario = async (id: number): Promise<any> => {
+    const { data } = await api.post(`/scenarios/${id}/unpublish`);
     return data;
 };
