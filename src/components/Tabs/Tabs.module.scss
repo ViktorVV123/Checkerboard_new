@@ -3,30 +3,21 @@
   gap: 0;
   padding: 0 40px;
   background-color: var(--bg-secondary);
-  overflow-x: auto;
-
-  scrollbar-width: thin;
-
-  &::-webkit-scrollbar {
-    height: 3px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border);
-    border-radius: 3px;
-  }
+  // overflow-x убираем — табы растянуты, скролл не нужен
 }
 
 .item {
+  flex: 1;              // ← каждый таб занимает равную долю
+  justify-content: center; // ← текст по центру
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0.9em 1.5em;
+  padding: 0.9em 0.5em;  // уменьшаем боковые паддинги — место теперь делится равно
   border: none;
   background-color: transparent;
   color: var(--tab-inactive);
   cursor: pointer;
-  font-size: clamp(15px, 1.3vh, 17px);
+  font-size: clamp(13px, 1.3vh, 17px); // чуть меньше минимум — на узких экранах влезет
   font-weight: 500;
   white-space: nowrap;
   border-bottom: 2px solid transparent;
@@ -36,6 +27,7 @@
     color: var(--text-primary);
   }
 }
+
 
 .active {
   color: var(--tab-active);

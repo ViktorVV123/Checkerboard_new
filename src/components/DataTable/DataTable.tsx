@@ -38,8 +38,10 @@ const DataTable: React.FC<DataTableProps> = ({
     const tableRef = useRef<HTMLTableElement>(null);
     const rowRectsRef = useRef<DOMRect[]>([]);
 
-    const formatValue = (value: any): string => {
-        if (value === null || value === undefined) return '';
+    const formatValue = (value: any, isNumericCol: boolean = false): string => {
+        if (value === null || value === undefined) {
+            return isNumericCol ? '0' : '';
+        }
         const num = Number(value);
         if (!isNaN(num) && value !== '') {
             if (num === 0) return '0';
@@ -289,8 +291,8 @@ const DataTable: React.FC<DataTableProps> = ({
                                     ) : (
                                         <>
                                             {inFillRange
-                                                ? formatValue(col.absValue ? Math.abs(Number(fillSource?.value) || 0) : fillSource?.value)
-                                                : formatValue(col.absValue ? Math.abs(Number(row[col.key]) || 0) : row[col.key])}
+                                                ? formatValue(col.absValue ? Math.abs(Number(fillSource?.value) || 0) : fillSource?.value, col.key !== 'date')
+                                                : formatValue(col.absValue ? Math.abs(Number(row[col.key]) || 0) : row[col.key], col.key !== 'date')}
                                             {showFillHandle && (
                                                 <span
                                                     className={s.fillHandle}

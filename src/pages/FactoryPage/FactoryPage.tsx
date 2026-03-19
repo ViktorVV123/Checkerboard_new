@@ -19,7 +19,7 @@ import {
     unpublishScenario,
 } from '../../api/factoriesApi';
 import {getTodayApprovals, voteApproval, ApprovalStatus} from '../../api/approvalsApi';
-import {exportToExcel} from '../../utils/exportToExcel';
+import {exportEnterpriseToExcel, exportToExcel} from '../../utils/exportToExcel';
 import * as s from './FactoryPage.module.scss';
 import {getProductIndicator, IndicatorColor} from '@/utils/calculations';
 
@@ -134,8 +134,23 @@ const FactoryPage: React.FC = () => {
         if (isExporting) return;
         setIsExporting(true);
         try {
-            const label = activeScenario ? `_${activeScenario.name}` : '_оригинал';
-            exportToExcel(displayData, getColumns(enterprise, product), formatDate, `${enterprise}_${product}${label}.xlsx`);
+            // Загружаем данные по всем продуктам параллельно
+            const dataByProduct: Record<string, any[]> = {};
+            await Promise.all(
+                products.map(async (p) => {
+                    const rows = await getProductData(enterprise, p);
+                    dataByProduct[p] = rows;
+                })
+            );
+
+            const filename = `${enterprise}_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`;
+            exportEnterpriseToExcel(
+                products,
+                dataByProduct,
+                (p) => getColumns(enterprise, p),
+                formatDate,
+                filename,
+            );
         } finally {
             setIsExporting(false);
         }
