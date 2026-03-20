@@ -14,24 +14,24 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 24px;
-  min-width: 380px;
+  padding: clamp(16px, 2vh, 24px);
+  min-width: min(380px, 90vw);
 
   h3 {
     color: var(--text-primary);
-    font-size: 16px;
-    margin-bottom: 16px;
+    font-size: clamp(13px, 1.5vh, 18px);
+    margin-bottom: clamp(10px, 1.2vh, 16px);
   }
 }
 
 .textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: clamp(6px, 0.8vh, 10px) 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--ui-font);
   font-family: inherit;
   resize: vertical;
   outline: none;
@@ -45,27 +45,27 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: clamp(10px, 1.2vh, 16px);
 }
 
 .cancelBtn {
-  padding: 8px 16px;
+  padding: clamp(5px, 0.6vh, 8px) clamp(10px, 1vw, 16px);
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
 }
 
 .confirmBtn {
-  padding: 8px 16px;
+  padding: clamp(5px, 0.6vh, 8px) clamp(10px, 1vw, 16px);
   border: none;
   border-radius: 8px;
   background: #ef4444;
   color: #fff;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
   font-weight: 600;
 
   &:hover {

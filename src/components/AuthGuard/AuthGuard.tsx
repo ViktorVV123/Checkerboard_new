@@ -31,8 +31,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         return (
             <div style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                height: '100vh', background: 'var(--bg-primary)',
-                color: 'var(--text-secondary)', fontSize: '16px',
+                height: '100dvh', background: 'var(--bg-primary)',
+                color: 'var(--text-secondary)', fontSize: 'var(--ui-font)',
             }}>
                 Проверка авторизации...
             </div>
@@ -43,12 +43,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         return (
             <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: 'center', height: '100vh', gap: '20px',
+                justifyContent: 'center', height: '100dvh', gap: '20px',
                 background: 'var(--bg-primary)', color: 'var(--text-primary)',
                 fontFamily: 'Segoe UI, sans-serif',
             }}>
-                <div style={{ fontSize: '24px', fontWeight: 600 }}>Требуется авторизация</div>
-                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>У вас нет доступа</div>
+                <div style={{ fontSize: 'clamp(16px, 2vh, 24px)', fontWeight: 600 }}>Требуется авторизация</div>
+                <div style={{ fontSize: 'var(--ui-font)', color: 'var(--text-secondary)' }}>У вас нет доступа</div>
             </div>
         );
     }

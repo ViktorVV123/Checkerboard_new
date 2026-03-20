@@ -6,9 +6,10 @@ interface TabsProps {
     active: string;
     onSelect: (item: string) => void;
     indicators?: Record<string, 'red' | 'orange' | 'yellow' | null>;
+    editedProducts?: Set<string>;
 }
 
-const Tabs: React.FC<TabsProps> = ({ items, active, onSelect, indicators }) => {
+const Tabs: React.FC<TabsProps> = ({ items, active, onSelect, indicators, editedProducts }) => {
     const getDotClass = (color: string | null | undefined): string => {
         if (color === 'red') return s.dotRed;
         if (color === 'orange') return s.dotOrange;
@@ -20,10 +21,15 @@ const Tabs: React.FC<TabsProps> = ({ items, active, onSelect, indicators }) => {
         <div className={s.tabs}>
             {items.map((item) => {
                 const color = indicators?.[item];
+                const isEdited = editedProducts?.has(item);
                 return (
                     <button
                         key={item}
-                        className={`${s.item} ${item === active ? s.active : ''}`}
+                        className={[
+                            s.item,
+                            item === active ? s.active : '',
+                            isEdited ? s.edited : '',
+                        ].filter(Boolean).join(' ')}
                         onClick={() => onSelect(item)}
                     >
                         {item}

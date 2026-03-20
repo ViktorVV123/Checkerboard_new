@@ -10,13 +10,13 @@
 }
 
 .mainBtn {
-  padding: 8px 14px;
+  padding: var(--bar-padding-v) clamp(8px, 0.8vw, 14px);
   border: none;
   border-radius: 8px 0 0 8px;
   background-color: var(--accent);
   color: #ffffff;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
   font-weight: 600;
   white-space: nowrap;
   transition: background-color 0.2s;
@@ -27,14 +27,14 @@
 }
 
 .arrowBtn {
-  padding: 8px 10px;
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 10px);
   border: none;
   border-left: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0 8px 8px 0;
   background-color: var(--accent);
   color: #ffffff;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--ui-font);
   transition: background-color 0.2s;
 
   &:hover {
@@ -59,8 +59,8 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: clamp(6px, 0.8vw, 12px);
+  padding: clamp(8px, 1vh, 12px) clamp(10px, 1vw, 16px);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -77,7 +77,7 @@
 }
 
 .itemIcon {
-  font-size: 18px;
+  font-size: clamp(14px, 1.6vh, 18px);
   flex-shrink: 0;
 }
 
@@ -88,12 +88,12 @@
 }
 
 .itemTitle {
-  font-size: 13px;
+  font-size: var(--ui-font);
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .itemDesc {
-  font-size: 11px;
+  font-size: clamp(9px, 1vh, 12px);
   color: var(--text-secondary);
 }

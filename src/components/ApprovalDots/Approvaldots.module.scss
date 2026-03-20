@@ -3,19 +3,19 @@
 .wrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(6px, 0.8vw, 12px);
   position: relative;
 }
 
 .dots {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: clamp(3px, 0.4vw, 6px);
 }
 
 .dot {
-  width: 14px;
-  height: 14px;
+  width: clamp(10px, 1.2vh, 14px);
+  height: clamp(10px, 1.2vh, 14px);
   border-radius: 50%;
   cursor: default;
   transition: transform 0.15s;
@@ -43,13 +43,13 @@
 
 .tooltip {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   left: 0;
   background-color: #1a1a1f;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 12px;
+  padding: clamp(4px, 0.4vh, 6px) clamp(6px, 0.6vw, 10px);
+  font-size: clamp(9px, 1vh, 12px);
   color: var(--text-primary);
   white-space: nowrap;
   z-index: 50;
@@ -60,13 +60,13 @@
 .buttons {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: clamp(3px, 0.4vw, 6px);
 }
 
 .btn {
-  padding: 5px 12px;
+  padding: var(--bar-padding-v) clamp(6px, 0.7vw, 12px);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: var(--ui-font);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;

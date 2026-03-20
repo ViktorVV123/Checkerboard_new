@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useRef} from 'react';
+import React, {useEffect, useState, useRef, useCallback} from 'react';
 import Header from '../../components/Header/Header';
 import Tabs from '../../components/Tabs/Tabs';
 import DataTable from '../../components/DataTable/DataTable';
@@ -19,7 +19,7 @@ import {
     unpublishScenario,
 } from '../../api/factoriesApi';
 import {getTodayApprovals, voteApproval, ApprovalStatus} from '../../api/approvalsApi';
-import {exportEnterpriseToExcel, exportToExcel} from '../../utils/exportToExcel';
+import {exportEnterpriseToExcel} from '../../utils/exportToExcel';
 import * as s from './FactoryPage.module.scss';
 import {getProductIndicator, IndicatorColor} from '@/utils/calculations';
 
@@ -56,6 +56,9 @@ const formatDate = (dateNum: number): string => {
 
 type ScenarioBarTab = 'scenarios' | 'drafts';
 
+// Максимальная глубина истории
+const MAX_UNDO_STEPS = 50;
+
 const FactoryPage: React.FC = () => {
     const [enterprises, setEnterprises] = useState<string[]>([]);
     const [enterprise, setEnterprise] = useState<string>('');
@@ -70,6 +73,10 @@ const FactoryPage: React.FC = () => {
     const [editedCells, setEditedCells] = useState<Map<string, string>>(new Map());
     const [isEditing, setIsEditing] = useState(false);
 
+    // Стек истории для Ctrl+Z
+    // Каждый элемент — снапшот editedCells ДО изменения
+    const undoStackRef = useRef<Map<string, string>[]>([]);
+
     const [scenarioBarTab, setScenarioBarTab] = useState<ScenarioBarTab>('scenarios');
 
     const [showScenarioModal, setShowScenarioModal] = useState(false);
@@ -82,10 +89,19 @@ const FactoryPage: React.FC = () => {
     const [isExporting, setIsExporting] = useState(false);
 
     const [approvals, setApprovals] = useState<ApprovalStatus[]>([]);
-    const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined); // undefined = ещё не загружен
+    const [currentUsername, setCurrentUsername] = useState<string | null | undefined>(undefined);
     const [showRejectModal, setShowRejectModal] = useState(false);
 
-    // Получаем username один раз при монтировании
+    const [editedProducts, setEditedProducts] = useState<Set<string>>(new Set());
+
+    // Refs для доступа в обработчике Ctrl+Z
+    const activeScenarioRef = useRef(activeScenario);
+    activeScenarioRef.current = activeScenario;
+    const editedCellsRef = useRef(editedCells);
+    editedCellsRef.current = editedCells;
+    const dataRef = useRef(data);
+    dataRef.current = data;
+
     useEffect(() => {
         import('../../api/auth').then(({api}) => {
             api.post('/auth/verify')
@@ -93,18 +109,85 @@ const FactoryPage: React.FC = () => {
                     const user = res.data?.User || res.data;
                     setCurrentUsername(user?.username || null);
                 })
-                .catch(() => {
-                    setCurrentUsername(null); // не авторизован — тоже определённое состояние
-                });
+                .catch(() => setCurrentUsername(null));
         });
     }, []);
+
+    // Сохраняем снапшот перед изменением
+    const pushUndoSnapshot = useCallback((currentMap: Map<string, string>) => {
+        const snapshot = new Map(currentMap);
+        undoStackRef.current = [
+            ...undoStackRef.current.slice(-MAX_UNDO_STEPS + 1),
+            snapshot,
+        ];
+    }, []);
+
+    // Синхронизируем разницу между двумя состояниями editedCells с БД
+    const syncDiffToDB = useCallback(async (
+        prevMap: Map<string, string>,
+        nextMap: Map<string, string>,
+        scenarioId: number,
+        originalData: any[],
+    ) => {
+        // Собираем все ключи через Array.from вместо spread итератора
+        const allKeys = new Set<string>(
+            Array.from(prevMap.keys()).concat(Array.from(nextMap.keys()))
+        );
+
+        // Итерируем через Array.from вместо for...of Set
+        for (const key of Array.from(allKeys)) {
+            const [rowIdStr, field] = key.split('-');
+            const rowId = Number(rowIdStr);
+            const prevVal = prevMap.get(key);
+            const nextVal = nextMap.get(key);
+
+            if (prevVal === nextVal) continue;
+
+            if (nextVal !== undefined) {
+                await saveScenarioEdit(scenarioId, rowId, field, nextVal);
+            } else {
+                const origRow = originalData.find((r) => r.id === rowId);
+                const origVal = origRow ? String(origRow[field] ?? '0') : '0';
+                await saveScenarioEdit(scenarioId, rowId, field, origVal);
+            }
+        }
+    }, []);
+    // Обработчик Ctrl+Z
+    useEffect(() => {
+        const handleKeyDown = async (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey) || e.key !== 'z') return;
+            if (!activeScenarioRef.current) return;
+            if (undoStackRef.current.length === 0) return;
+
+            // Не откатываем если фокус в поле ввода
+            const tag = (e.target as HTMLElement)?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+            e.preventDefault();
+
+            const prevSnapshot = undoStackRef.current[undoStackRef.current.length - 1];
+            undoStackRef.current = undoStackRef.current.slice(0, -1);
+
+            const currentMap = editedCellsRef.current;
+            const scenarioId = activeScenarioRef.current.id;
+            const origData = dataRef.current;
+
+            // Применяем снапшот
+            setEditedCells(new Map(prevSnapshot));
+
+            // Синхронизируем с БД
+            await syncDiffToDB(currentMap, prevSnapshot, scenarioId, origData);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [syncDiffToDB]);
 
     const loadApprovals = async (ent: string) => {
         try {
             const list = await getTodayApprovals(ent);
             setApprovals(list);
-        } catch {
-        }
+        } catch {}
     };
 
     const isApprover = enterprise
@@ -115,9 +198,7 @@ const FactoryPage: React.FC = () => {
         try {
             await voteApproval(enterprise, 'approved');
             await loadApprovals(enterprise);
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
     const handleRejectConfirm = async (comment: string) => {
@@ -125,48 +206,47 @@ const FactoryPage: React.FC = () => {
         try {
             await voteApproval(enterprise, 'rejected', comment);
             await loadApprovals(enterprise);
-        } catch (err) {
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     };
 
     const handleExport = async () => {
         if (isExporting) return;
         setIsExporting(true);
         try {
-            // Загружаем данные по всем продуктам параллельно
             const dataByProduct: Record<string, any[]> = {};
-            await Promise.all(
-                products.map(async (p) => {
-                    const rows = await getProductData(enterprise, p);
-                    dataByProduct[p] = rows;
-                })
-            );
-
+            await Promise.all(products.map(async (p) => {
+                const rows = await getProductData(enterprise, p);
+                dataByProduct[p] = rows;
+            }));
             const filename = `${enterprise}_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.xlsx`;
-            exportEnterpriseToExcel(
-                products,
-                dataByProduct,
-                (p) => getColumns(enterprise, p),
-                formatDate,
-                filename,
-            );
+            exportEnterpriseToExcel(products, dataByProduct, (p) => getColumns(enterprise, p), formatDate, filename);
         } finally {
             setIsExporting(false);
         }
     };
 
-    // currentUsername передаём явно чтобы не зависеть от замыкания
     const loadScenarios = async (username: string | null | undefined = currentUsername) => {
         if (!enterprise) return;
         try {
-            console.log('[loadScenarios] enterprise:', enterprise, 'username:', username);
             const list = await getScenarios(enterprise, username ?? undefined);
-            console.log('[loadScenarios] result:', list);
             setScenarios(list);
         } catch (err: any) {
             if (err?.response?.status === 401) setAuthError(true);
         }
+    };
+
+    const detectEditedProducts = async (scenarioId: number, productList: string[], ent: string) => {
+        try {
+            const scenarioData = await getScenarioData(scenarioId);
+            if (!scenarioData.length) { setEditedProducts(new Set()); return; }
+            const editedIds = new Set(scenarioData.map((r: any) => Number(r.id)));
+            const edited = new Set<string>();
+            await Promise.all(productList.map(async (p) => {
+                const rows = await getProductData(ent, p);
+                if (rows.some((r) => editedIds.has(r.id))) edited.add(p);
+            }));
+            setEditedProducts(edited);
+        } catch {}
     };
 
     const publicScenarios = scenarios.filter((sc) => !sc.isDraft);
@@ -212,56 +292,36 @@ const FactoryPage: React.FC = () => {
 
     useEffect(() => {
         getEnterprises()
-            .then((list) => {
-                setEnterprises(list);
-                if (list.length > 0) setEnterprise(list[0]);
-            })
-            .catch((err: any) => {
-                if (err?.response?.status === 401) setAuthError(true);
-            });
+            .then((list) => { setEnterprises(list); if (list.length > 0) setEnterprise(list[0]); })
+            .catch((err: any) => { if (err?.response?.status === 401) setAuthError(true); });
     }, []);
 
-    // Загружаем сценарии только когда известны ОБА: enterprise и currentUsername
-    // currentUsername === undefined означает "ещё не загружен" — ждём
     useEffect(() => {
         if (!enterprise || currentUsername === undefined) return;
-
         getProducts(enterprise)
-            .then((list) => {
-                setProducts(list);
-                if (list.length > 0) setProduct(list[0]);
-            })
-            .catch((err: any) => {
-                if (err?.response?.status === 401) setAuthError(true);
-            });
-
-        // Передаём username явно — к этому моменту он уже точно определён
+            .then((list) => { setProducts(list); if (list.length > 0) setProduct(list[0]); })
+            .catch((err: any) => { if (err?.response?.status === 401) setAuthError(true); });
         loadScenarios(currentUsername);
-        /*  loadApprovals(enterprise);*/
         setActiveScenario(null);
         setEditedCells(new Map());
+        setEditedProducts(new Set());
+        undoStackRef.current = [];
         setIsEditing(false);
-    }, [enterprise, currentUsername]); // оба в зависимостях
+    }, [enterprise, currentUsername]);
 
     useEffect(() => {
         if (!enterprise) return;
         loadApprovals(enterprise);
-        const interval = setInterval(() => loadApprovals(enterprise), 25000)
+        const interval = setInterval(() => loadApprovals(enterprise), 25000);
         return () => clearInterval(interval);
-    }, [enterprise])
+    }, [enterprise]);
 
     useEffect(() => {
         if (!enterprise || !product) return;
         setLoading(true);
         getProductData(enterprise, product)
-            .then((rows) => {
-                setData(rows);
-                setLoading(false);
-            })
-            .catch((err: any) => {
-                if (err?.response?.status === 401) setAuthError(true);
-                setLoading(false);
-            });
+            .then((rows) => { setData(rows); setLoading(false); })
+            .catch((err: any) => { if (err?.response?.status === 401) setAuthError(true); setLoading(false); });
     }, [enterprise, product]);
 
     useEffect(() => {
@@ -294,6 +354,8 @@ const FactoryPage: React.FC = () => {
             } else {
                 setEditedCells(new Map());
             }
+            // Сбрасываем историю при загрузке нового сценария/продукта
+            undoStackRef.current = [];
         } catch (err: any) {
             if (err?.response?.status === 401) setAuthError(true);
         }
@@ -304,6 +366,9 @@ const FactoryPage: React.FC = () => {
         const originalRow = data.find((r) => r.id === rowId);
         const origVal = originalRow ? String(Math.round(Number(originalRow[field]) || 0)) : '0';
         const newVal = String(Math.round(Number(value) || 0));
+
+        // Сохраняем снапшот ДО изменения
+        pushUndoSnapshot(editedCells);
 
         const newEdited = new Map(editedCells);
         if (newVal === origVal) {
@@ -334,6 +399,7 @@ const FactoryPage: React.FC = () => {
             await saveScenarioEdit(activeScenario.id, rowId, 'freeCapacity', String(fc));
         }
         setEditedCells(newEdited);
+        setEditedProducts((prev) => new Set(prev).add(product));
     };
 
     const getSnapshotFields = () => [
@@ -370,6 +436,8 @@ const FactoryPage: React.FC = () => {
         setScenarios([scenario, ...scenarios]);
         setActiveScenario(scenario);
         setIsEditing(true);
+        setEditedProducts(new Set());
+        undoStackRef.current = [];
         setShowScenarioModal(false);
         setScenarioName('');
         setScenarioAuthor('');
@@ -382,6 +450,8 @@ const FactoryPage: React.FC = () => {
         if (activeScenario?.id === id) {
             setActiveScenario(null);
             setEditedCells(new Map());
+            setEditedProducts(new Set());
+            undoStackRef.current = [];
             setIsEditing(false);
         }
     };
@@ -389,11 +459,16 @@ const FactoryPage: React.FC = () => {
     const handleSelectScenario = (scenario: any) => {
         setActiveScenario(scenario);
         setIsEditing(true);
+        setEditedProducts(new Set());
+        undoStackRef.current = [];
+        if (products.length > 0) detectEditedProducts(scenario.id, products, enterprise);
     };
 
     const handleBackToOriginal = () => {
         setActiveScenario(null);
         setEditedCells(new Map());
+        setEditedProducts(new Set());
+        undoStackRef.current = [];
         setIsEditing(false);
         Promise.all(products.map(async (p) => {
             const rows = await getProductData(enterprise, p);
@@ -419,6 +494,10 @@ const FactoryPage: React.FC = () => {
 
     const handleFillDown = async (rowIds: number[], field: string, value: string) => {
         if (!activeScenario) return;
+
+        // Сохраняем снапшот ДО изменения (fillDown — одна операция в истории)
+        pushUndoSnapshot(editedCells);
+
         const newEdited = new Map(editedCells);
         for (const rowId of rowIds) {
             const originalRow = data.find((r) => r.id === rowId);
@@ -431,22 +510,18 @@ const FactoryPage: React.FC = () => {
             const shipmentFields = ['railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact', 'waterShipmentFact'];
             if (shipmentFields.includes(field)) {
                 const cr = {...originalRow};
-                newEdited.forEach((val, k) => {
-                    const [rId, f] = k.split('-');
-                    if (Number(rId) === rowId) cr[f] = Number(val);
-                });
+                newEdited.forEach((val, k) => { const [rId, f] = k.split('-'); if (Number(rId) === rowId) cr[f] = Number(val); });
                 newEdited.set(`${rowId}-shipmentFact`, String((Number(cr.railwayShipmentFact) || 0) + (Number(cr.pipeShipmentFact) || 0) + (Number(cr.mnppShipmentFact) || 0) + (Number(cr.waterShipmentFact) || 0)));
             }
             if (['tradeRemains', 'parkVolume'].includes(field)) {
                 const cr = {...originalRow};
-                newEdited.forEach((val, k) => {
-                    const [rId, f] = k.split('-');
-                    if (Number(rId) === rowId) cr[f] = Number(val);
-                });
+                newEdited.forEach((val, k) => { const [rId, f] = k.split('-'); if (Number(rId) === rowId) cr[f] = Number(val); });
                 newEdited.set(`${rowId}-freeCapacity`, String((Number(cr.parkVolume) || 0) - (Number(cr.tradeRemains) || 0)));
             }
         }
         setEditedCells(newEdited);
+        setEditedProducts((prev) => new Set(prev).add(product));
+
         for (const rowId of rowIds) {
             const val = newEdited.get(`${rowId}-${field}`);
             if (val !== undefined) {
@@ -527,8 +602,7 @@ const FactoryPage: React.FC = () => {
                                     <span className={s.scenarioName}>{sc.name}</span>
                                     <span className={s.scenarioAuthor}>{sc.author}</span>
                                 </button>
-                                <button className={s.scenarioDelete} onClick={() => handleDeleteScenario(sc.id)}>×
-                                </button>
+                                <button className={s.scenarioDelete} onClick={() => handleDeleteScenario(sc.id)}>×</button>
                             </div>
                         ))
                     )}
@@ -568,7 +642,7 @@ const FactoryPage: React.FC = () => {
                     </button>
 
                     <button className={s.refreshBtn} onClick={() => loadScenarios()} title="Обновить">
-                        <RefreshIcon style={{fontSize: 18, color: 'inherit'}}/>
+                        <RefreshIcon style={{fontSize: 'clamp(14px, 1.4vh, 20px)', color: 'inherit'}}/>
                     </button>
                 </div>
             </div>
@@ -586,8 +660,7 @@ const FactoryPage: React.FC = () => {
                     <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
                         <h3>{creatingDraft ? 'Новый черновик' : 'Новый сценарий'}</h3>
                         {creatingDraft && (
-                            <p className={s.draftHint}>Черновик виден только вам. После публикации станет доступен
-                                всем.</p>
+                            <p className={s.draftHint}>Черновик виден только вам. После публикации станет доступен всем.</p>
                         )}
                         <input
                             className={s.modalInput}
@@ -612,8 +685,7 @@ const FactoryPage: React.FC = () => {
                             style={{marginTop: '8px'}}
                         />
                         <div className={s.modalButtons}>
-                            <button className={s.modalCancel} onClick={() => setShowScenarioModal(false)}>Отмена
-                            </button>
+                            <button className={s.modalCancel} onClick={() => setShowScenarioModal(false)}>Отмена</button>
                             <button className={s.modalSave} onClick={handleCreateScenario}>
                                 {creatingDraft ? 'Создать черновик' : 'Создать'}
                             </button>
@@ -623,7 +695,13 @@ const FactoryPage: React.FC = () => {
             )}
 
             {products.length > 0 && (
-                <Tabs items={products} active={product} onSelect={setProduct} indicators={productIndicators}/>
+                <Tabs
+                    items={products}
+                    active={product}
+                    onSelect={setProduct}
+                    indicators={productIndicators}
+                    editedProducts={activeScenario ? editedProducts : new Set()}
+                />
             )}
 
             <div className={s.content}>

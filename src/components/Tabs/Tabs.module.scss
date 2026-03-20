@@ -1,33 +1,29 @@
 .tabs {
   display: flex;
   gap: 0;
-  padding: 0 40px;
+  padding: 0 clamp(12px, 1.5vw, 40px);
   background-color: var(--bg-secondary);
-  // overflow-x убираем — табы растянуты, скролл не нужен
+  flex-shrink: 0;
 }
 
 .item {
-  flex: 1;              // ← каждый таб занимает равную долю
-  justify-content: center; // ← текст по центру
+  flex: 1;
+  justify-content: center;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0.9em 0.5em;  // уменьшаем боковые паддинги — место теперь делится равно
+  gap: clamp(3px, 0.3vw, 5px);
+  padding: var(--tabs-padding-v) 0.5em;
   border: none;
   background-color: transparent;
   color: var(--tab-inactive);
   cursor: pointer;
-  font-size: clamp(13px, 1.3vh, 17px); // чуть меньше минимум — на узких экранах влезет
+  font-size: var(--tabs-font);
   font-weight: 500;
   white-space: nowrap;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
-
-  &:hover {
-    color: var(--text-primary);
-  }
+  &:hover { color: var(--text-primary); }
 }
-
 
 .active {
   color: var(--tab-active);
@@ -36,20 +32,17 @@
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: clamp(5px, 0.6vh, 7px);
+  height: clamp(5px, 0.6vh, 7px);
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.dotRed {
-  background-color: #f87171;
-}
+.dotRed    { background-color: #f87171; }
+.dotOrange { background-color: #f59e0b; }
+.dotYellow { background-color: #fde047; }
 
-.dotOrange {
-  background-color: #f59e0b;
-}
-
-.dotYellow {
-  background-color: #fde047;
+.edited {
+  background-color: rgba(251, 191, 36, 0.12);
+  &.active { background-color: rgba(251, 191, 36, 0.2); }
 }

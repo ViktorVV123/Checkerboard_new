@@ -1,16 +1,24 @@
+/* FactoryPage — корневой layout.
+   Строго вписывается в 100dvh (высота viewport минус тулбар браузера).
+   Все дочерние блоки flex-shrink: 0 кроме .content, который забирает остаток. */
+
 .page {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   background-color: var(--bg-primary);
-  max-width: 80vw;
+  width: 85vw;
   margin: 0 auto;
-  padding: 0 24px;
 }
 
 .content {
-  flex: 1;
-  padding-top: 8px;
+  flex: 1 1 0;
+  min-height: 0;        /* критично — без этого flex-child не сжимается */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-top: clamp(2px, 0.3vh, 6px);
 }
 
 .loader {
@@ -19,98 +27,140 @@
   justify-content: center;
   height: 200px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: var(--ui-font);
 }
 
-// Панель сценариев
+/* ── Scenario Bar ── */
+
 .scenarioBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 40px;
+  padding: var(--bar-padding-v) clamp(12px, 1.5vw, 40px);
   background-color: var(--bg-secondary);
-
-  gap: 8px;
+  gap: clamp(4px, 0.4vw, 8px);
+  flex-shrink: 0;
 }
 
 .scenarioLeft {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: clamp(2px, 0.3vw, 4px);
   overflow-x: auto;
+  min-width: 0;
+  &::-webkit-scrollbar { height: 0; }
 }
 
 .scenarioItem {
   display: flex;
   align-items: center;
   gap: 0;
+  flex-shrink: 0;
 }
 
 .scenarioBtn {
-  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
   border: 1px solid var(--border);
   border-radius: 6px;
   background-color: transparent;
-  color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
   white-space: nowrap;
   transition: all 0.2s;
+  gap: 1px;
+  flex-shrink: 0;
+  &:hover { border-color: var(--accent); }
+}
 
-  &:hover {
-    color: var(--text-primary);
-    border-color: var(--accent);
-  }
+.scenarioName {
+  font-size: var(--ui-font);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.scenarioAuthor {
+  font-size: clamp(8px, 1vh, 13px);
+  color: var(--text-secondary);
 }
 
 .active {
   background-color: var(--accent);
-  color: #ffffff;
   border-color: var(--accent);
+  .scenarioName { color: #ffffff; }
+  .scenarioAuthor { color: rgba(255, 255, 255, 0.7); }
 }
 
 .scenarioDelete {
-  padding: 4px 8px;
+  padding: clamp(2px, 0.3vh, 4px) clamp(4px, 0.4vw, 6px);
   border: none;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--ui-font);
+  &:hover { color: #ef4444; }
+}
 
-  &:hover {
-    color: #ef4444;
-  }
+.scenarioRight {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 0.4vw, 6px);
+  flex-shrink: 0;
+}
+
+.saveBtn {
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
+  border: 1px solid #22c55e;
+  border-radius: 6px;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  cursor: pointer;
+  font-size: var(--ui-font);
+  white-space: nowrap;
+  transition: all 0.2s;
+  &:hover { background-color: rgba(34, 197, 94, 0.2); }
 }
 
 .createBtn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 18px;
+  gap: clamp(3px, 0.3vw, 5px);
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
   border: none;
   border-radius: 8px;
   background-color: var(--accent);
   color: #ffffff;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
   font-weight: 600;
   white-space: nowrap;
   transition: all 0.2s;
-  letter-spacing: 0.02em;
-
   &:hover {
     background-color: var(--accent-hover);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(107, 155, 210, 0.3);
   }
-
   &:active {
     transform: translateY(0);
     box-shadow: none;
   }
 }
 
-// Модалка
+.refreshBtn {
+  padding: var(--bar-padding-v) clamp(4px, 0.4vw, 8px);
+  background-color: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--ui-font);
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+/* ── Модалки ── */
+
 .modal {
   position: fixed;
   top: 0;
@@ -128,235 +178,70 @@
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 24px;
-  min-width: 360px;
-
+  padding: clamp(16px, 2vh, 24px);
+  min-width: min(360px, 90vw);
   h3 {
-    margin-bottom: 16px;
+    margin-bottom: clamp(10px, 1.2vh, 16px);
     color: var(--text-primary);
-    font-size: 16px;
+    font-size: clamp(13px, 1.5vh, 18px);
   }
 }
 
 .modalInput {
   width: 100%;
-  padding: 10px 12px;
+  padding: clamp(6px, 0.8vh, 10px) 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--ui-font);
   outline: none;
-
-  &:focus {
-    border-color: var(--accent);
-  }
+  &:focus { border-color: var(--accent); }
 }
 
 .modalButtons {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: clamp(10px, 1.2vh, 16px);
 }
 
 .modalCancel {
-  padding: 8px 16px;
+  padding: clamp(5px, 0.6vh, 8px) clamp(10px, 1vw, 16px);
   border: 1px solid var(--border);
   border-radius: 8px;
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
 }
 
 .modalSave {
-  padding: 8px 16px;
+  padding: clamp(5px, 0.6vh, 8px) clamp(10px, 1vw, 16px);
   border: none;
   border-radius: 8px;
   background-color: var(--accent);
   color: #ffffff;
   cursor: pointer;
-  font-size: 13px;
-
-  &:hover {
-    background-color: var(--accent-hover);
-  }
+  font-size: var(--ui-font);
+  &:hover { background-color: var(--accent-hover); }
 }
 
 .modalTextarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: clamp(6px, 0.8vh, 10px) 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: var(--ui-font);
   font-family: inherit;
   outline: none;
   resize: vertical;
-
-  &:focus {
-    border-color: var(--accent);
-  }
-}
-.scenarioRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  &:focus { border-color: var(--accent); }
 }
 
-.saveBtn {
-  padding: 6px 14px;
-  border: 1px solid #22c55e;
-  border-radius: 6px;
-  background-color: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  cursor: pointer;
-  font-size: 13px;
-  white-space: nowrap;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(34, 197, 94, 0.2);
-  }
-}
-.scenarioBtn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 6px 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background-color: transparent;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-  gap: 2px;
-
-  &:hover {
-    border-color: var(--accent);
-  }
-}
-
-.scenarioName {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.scenarioAuthor {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
-
-.active {
-  background-color: var(--accent);
-  border-color: var(--accent);
-
-  .scenarioName {
-    color: #ffffff;
-  }
-
-  .scenarioAuthor {
-    color: rgba(255, 255, 255, 0.7);
-  }
-}
-
-.refreshBtn {
-  padding: 6px 10px;
-  background-color: transparent;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  transition: all 0.2s;
-}
-.approveBtn {
-  padding: 6px 14px;
-  border: 1px solid #22c55e;
-  border-radius: 6px;
-  background-color: transparent;
-  color: #22c55e;
-  cursor: pointer;
-  font-size: 13px;
-  white-space: nowrap;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(34, 197, 94, 0.15);
-  }
-}
-
-.approved {
-  border-color: #22c55e !important;
-  background-color: rgba(34, 197, 94, 0.1) !important;
-
-  .scenarioName {
-    color: #22c55e !important;
-  }
-
-  .scenarioAuthor {
-    color: rgba(34, 197, 94, 0.7) !important;
-  }
-}
-
-.approveBtn {
-  padding: 6px 14px;
-  border: 1px solid #22c55e;
-  border-radius: 6px;
-  background-color: transparent;
-  color: #22c55e;
-  cursor: pointer;
-  font-size: 13px;
-  white-space: nowrap;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(34, 197, 94, 0.15);
-  }
-}
-
-.approved {
-  border-color: #22c55e !important;
-  background-color: rgba(34, 197, 94, 0.1) !important;
-
-  .scenarioName {
-    color: #22c55e !important;
-  }
-
-  .scenarioAuthor {
-    color: rgba(34, 197, 94, 0.7) !important;
-  }
-}
-
-.approvedBadge {
-  padding: 6px 14px;
-  border-radius: 6px;
-  background-color: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--text-primary);
-
-  input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-}
-
+/* ── Черновики ── */
 
 .draft {
   border-style: dashed !important;
@@ -364,71 +249,78 @@
   opacity: 0.85;
 }
 
-.draftBadge {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background-color: rgba(107, 155, 210, 0.2);
-  color: var(--accent);
-  border-radius: 3px;
-  padding: 1px 4px;
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
 .draftHint {
-  font-size: 12px;
+  font-size: clamp(10px, 1vh, 13px);
   color: var(--text-secondary);
-  margin-bottom: 12px;
-  padding: 8px 12px;
+  margin-bottom: clamp(8px, 1vh, 12px);
+  padding: clamp(5px, 0.6vh, 8px) 12px;
   background: rgba(107, 155, 210, 0.08);
   border-radius: 6px;
   border-left: 3px solid var(--accent);
 }
 
 .publishBtn {
-  padding: 6px 14px;
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
   border: 1px solid var(--accent);
   border-radius: 6px;
   background-color: rgba(107, 155, 210, 0.1);
   color: var(--accent);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
   white-space: nowrap;
   transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(107, 155, 210, 0.2);
-  }
+  &:hover { background-color: rgba(107, 155, 210, 0.2); }
 }
 
 .unpublishBtn {
-  padding: 6px 14px;
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
   border: 1px solid var(--border);
   border-radius: 6px;
   background-color: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--ui-font);
   white-space: nowrap;
   transition: all 0.2s;
-
   &:hover {
     border-color: var(--accent);
     color: var(--text-primary);
   }
 }
 
+.approvedBadge {
+  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
+  border-radius: 6px;
+  background-color: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  font-size: var(--ui-font);
+  font-weight: 600;
+  white-space: nowrap;
+}
 
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, 0.5vw, 8px);
+  cursor: pointer;
+  font-size: var(--ui-font);
+  color: var(--text-primary);
+  input[type="checkbox"] {
+    width: clamp(12px, 1.4vh, 16px);
+    height: clamp(12px, 1.4vh, 16px);
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+}
+
+/* ── Bar tabs (Сценарии / Черновики) ── */
 
 .divider {
   width: 1px;
-  height: 24px;
+  height: clamp(14px, 1.8vh, 22px);
   background-color: var(--border);
   flex-shrink: 0;
-  margin: 0 4px;
+  margin: 0 clamp(2px, 0.3vw, 4px);
 }
 
 .barTabs {
@@ -440,18 +332,17 @@
 .barTab {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
+  gap: clamp(3px, 0.3vw, 5px);
+  padding: var(--bar-padding-v) clamp(6px, 0.5vw, 12px);
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--ui-font);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
-
   &:hover {
     color: var(--text-primary);
     background: rgba(255,255,255,0.04);
@@ -469,69 +360,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 9px;
+  min-width: clamp(12px, 1.4vh, 16px);
+  height: clamp(12px, 1.4vh, 16px);
+  padding: 0 clamp(2px, 0.3vw, 4px);
+  border-radius: 8px;
   background: var(--accent);
   color: #fff;
-  font-size: 10px;
+  font-size: clamp(8px, 0.9vh, 11px);
   font-weight: 700;
 }
 
 .emptyHint {
-  font-size: 12px;
+  font-size: var(--ui-font);
   color: var(--text-secondary);
   opacity: 0.6;
-  padding: 0 8px;
+  padding: 0 clamp(4px, 0.5vw, 8px);
   align-self: center;
-}
-
-.draft {
-  border-style: dashed !important;
-  border-color: var(--accent) !important;
-  opacity: 0.85;
-}
-
-.draftHint {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: rgba(107, 155, 210, 0.08);
-  border-radius: 6px;
-  border-left: 3px solid var(--accent);
-}
-
-.publishBtn {
-  padding: 6px 14px;
-  border: 1px solid var(--accent);
-  border-radius: 6px;
-  background-color: rgba(107, 155, 210, 0.1);
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 13px;
-  white-space: nowrap;
-  transition: all 0.2s;
-
-  &:hover {
-    background-color: rgba(107, 155, 210, 0.2);
-  }
-}
-
-.unpublishBtn {
-  padding: 6px 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background-color: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 13px;
-  white-space: nowrap;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: var(--accent);
-    color: var(--text-primary);
-  }
 }

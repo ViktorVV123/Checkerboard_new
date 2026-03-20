@@ -55,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({ enterprise, enterprises, onEnterpriseCh
                         rel="noopener noreferrer"
                         title="Открыть в Power BI"
                     >
-                        <OpenInNewIcon style={{fontSize: 16}}/>
+                        <OpenInNewIcon style={{fontSize: 'clamp(12px, 1.2vh, 18px)'}}/>
                         Power BI отчет
                     </a>
                 )}
@@ -66,7 +66,7 @@ const Header: React.FC<HeaderProps> = ({ enterprise, enterprises, onEnterpriseCh
                     disabled={isExporting}
                     title="Выгрузить в Excel"
                 >
-                    <DownloadIcon style={{fontSize: 16}}/>
+                    <DownloadIcon style={{fontSize: 'clamp(12px, 1.2vh, 18px)'}}/>
                     {isExporting ? 'Загрузка...' : 'Excel'}
                 </button>
 

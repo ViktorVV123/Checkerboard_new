@@ -1,5 +1,17 @@
+/* ==========================================================================
+   FLUID LAYOUT — всё масштабируется через clamp() от viewport height.
+   dvh (dynamic viewport height) учитывает тулбар браузера.
+   Fallback на vh для старых браузеров.
+   
+   Целевые диапазоны (viewport height после тулбара):
+     ~650px  (маленький ноут + тулбар) → min значения
+     ~900px  (1920×1080 - тулбар)      → средние
+     ~1300px (2560×1440 - тулбар)      → max значения
+   ========================================================================== */
+
 :root {
-    --bg-primary:#2D2D2D;
+    /* ── Цвета (dark, дефолт) ── */
+    --bg-primary: #2D2D2D;
     --bg-secondary: #2D2D2D;
     --bg-card: #1a1a1f;
     --bg-table-row: transparent;
@@ -15,9 +27,28 @@
     --forecast-bg: rgba(239, 68, 68, 0.08);
     --forecast-border: rgba(239, 68, 68, 0.3);
     --summary-bg: #111113;
-    --base-font: clamp(11px, calc(100vh / 95), 15px);
-    --tabs-font: clamp(16px, 1.4vh, 18px);
     --table-seven-day: rgba(255, 255, 255, 0.04);
+
+    /* ── Fluid типографика и отступы ── */
+
+    /* Основной шрифт таблицы — самый важный, определяет плотность строк */
+    --base-font: clamp(11px, 1.4vh, 22px);    /* было 1.55vh */
+    --row-padding: clamp(0px, 0.1vh, 3px);    /* было 0.15vh */
+
+    /* Шрифт вкладок продуктов */
+    --tabs-font: clamp(10px, 1.4vh, 18px);
+
+    /* UI-элементы: кнопки, лейблы, сценарии */
+    --ui-font: clamp(10px, 1.2vh, 15px);
+
+    /* Вертикальный паддинг хедера */
+    --header-padding-v: clamp(3px, 0.55vh, 10px);
+
+    /* Вертикальный паддинг scenario bar */
+    --bar-padding-v: clamp(2px, 0.45vh, 8px);
+
+    /* Вертикальный паддинг вкладок */
+    --tabs-padding-v: clamp(3px, 0.5vh, 9px);
 }
 
 [data-theme='light'] {
@@ -51,13 +82,18 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s, color 0.3s;
-
 }
 
 html, body, #root {
-    height: 100%;
+    height: 100vh;
     width: 100%;
     overflow: hidden;
     overscroll-behavior: none;
+}
 
+/* dvh учитывает динамическую адресную строку браузера */
+@supports (height: 100dvh) {
+    html, body, #root {
+        height: 100dvh;
+    }
 }
