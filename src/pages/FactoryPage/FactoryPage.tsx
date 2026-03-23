@@ -1,10 +1,12 @@
 import React, {useEffect, useState, useRef, useCallback} from 'react';
 import Header from '../../components/Header/Header';
 import Tabs from '../../components/Tabs/Tabs';
-import DataTable, {UpdateInfoData} from '../../components/DataTable/DataTable';
+import DataTable, {DeviationData, UpdateInfoData} from '../../components/DataTable/DataTable';
 import ApprovalDots from '../../components/ApprovalDots/ApprovalDots';
 import RejectModal from '../../components/RejectModal/RejectModal';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import SearchIcon from '@mui/icons-material/Search';
+
 import {
     getEnterprises,
     getProducts,
@@ -98,6 +100,9 @@ const FactoryPage: React.FC = () => {
 
     const [updateInfo, setUpdateInfo] = useState<Record<string, Record<string, string>> | null>(null);
     const [showUpdateTooltip, setShowUpdateTooltip] = useState(false);
+
+    const [deviationData, setDeviationData] = useState<DeviationData | null>(null);
+    const [showDeviationTooltip, setShowDeviationTooltip] = useState(false);
 
 
     // Refs для доступа в обработчике Ctrl+Z
@@ -764,7 +769,58 @@ const FactoryPage: React.FC = () => {
                             editable={isEditing}
                             onCellEdit={handleCellEdit}
                             onFillDown={handleFillDown}
+                            onDeviationData={setDeviationData}
                         />
+
+                        {deviationData && (
+                            <div
+                                className={s.deviationTrigger}
+                                onMouseEnter={() => setShowDeviationTooltip(true)}
+                                onMouseLeave={() => setShowDeviationTooltip(false)}
+                            >
+                                <SearchIcon style={{fontSize: 'clamp(24px, 3vh, 32px)'}}/>
+                                <div className={s.updateInfoText}>
+                                    <span className={s.updateInfoLabel}>План/Факт отклонение</span>
+                                    <span className={s.updateInfoDate}>Наведите, чтобы посмотреть отклонения</span>
+                                </div>
+                                {showDeviationTooltip && (
+                                    <div className={s.deviationTooltip}>
+                                        <div className={s.devSection}>
+                                            <div className={s.devSectionTitle}>Отгрузка</div>
+                                            <div className={s.devRow}>
+                                                <span className={s.devFact}>{Math.round(deviationData.factShipment).toLocaleString('ru-RU')}</span>
+                                                <div className={s.devDetails}>
+                                                    <div className={s.devLine}><span className={s.devLabel}>План</span><span>{Math.round(deviationData.planShipment).toLocaleString('ru-RU')}</span></div>
+                                                    <div className={s.devLine}><span className={s.devLabel}>ОБР</span><span>{Math.round(deviationData.obrShipment).toLocaleString('ru-RU')}</span></div>
+                                                    <div className={s.devLine}><span className={s.devLabel}>Ож...</span><span>{Math.round(deviationData.ozhidShipment).toLocaleString('ru-RU')}</span></div>
+                                                </div>
+                                                <span className={`${s.devDeviation} ${deviationData.ozhidShipment - deviationData.obrShipment >= 0 ? s.devPositive : s.devNegative}`}>
+                                                    {Math.round(deviationData.ozhidShipment - deviationData.obrShipment).toLocaleString('ru-RU')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={s.devSection}>
+                                            <div className={s.devSectionTitle}>Выработка</div>
+                                            <div className={s.devRow}>
+                                                <span className={s.devFact}>{Math.round(deviationData.factExpected).toLocaleString('ru-RU')}</span>
+                                                <div className={s.devDetails}>
+                                                    <div className={s.devLine}><span className={s.devLabel}>План</span><span>{Math.round(deviationData.planExpected).toLocaleString('ru-RU')}</span></div>
+                                                    <div className={s.devLine}><span className={s.devLabel}>ОБР</span><span>{Math.round(deviationData.obrExpected).toLocaleString('ru-RU')}</span></div>
+                                                    <div className={s.devLine}><span className={s.devLabel}>Ож...</span><span>{Math.round(deviationData.ozhidExpected).toLocaleString('ru-RU')}</span></div>
+                                                </div>
+                                                <span className={`${s.devDeviation} ${deviationData.ozhidExpected - deviationData.obrExpected >= 0 ? s.devPositive : s.devNegative}`}>
+                                                    {Math.round(deviationData.ozhidExpected - deviationData.obrExpected).toLocaleString('ru-RU')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={s.devPark}>
+                                            <span className={s.devLabel}>Парк</span>
+                                            <span>{Math.round(deviationData.parkVolume).toLocaleString('ru-RU')}</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {updateInfo && (
                             <div
                                 className={s.updateInfoTrigger}

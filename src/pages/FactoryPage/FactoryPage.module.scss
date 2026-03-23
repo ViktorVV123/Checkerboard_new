@@ -44,6 +44,7 @@
 
 .scenarioLeft {
   display: flex;
+
   align-items: center;
   gap: clamp(2px, 0.3vw, 4px);
   overflow-x: auto;
@@ -59,6 +60,7 @@
 }
 
 .scenarioBtn {
+  color: var(--text-primary);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -473,4 +475,106 @@
   border-top: 1px solid var(--border) !important;
   color: var(--tab-inactive) !important;
   font-size: clamp(10px, 1.1vh, 13px);
+}
+
+
+
+.deviationTrigger {
+  position: fixed;
+  bottom: clamp(60px, 10vh, 80px);
+  right: clamp(440px, 35vw, 550px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--tabs-font);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  z-index: 10;
+
+  &:hover { opacity: 1; }
+}
+
+.deviationTooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  z-index: 50;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.devSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devSectionTitle {
+  font-size: clamp(11px, 1.2vh, 14px);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.devRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.devFact {
+  font-size: clamp(16px, 2vh, 22px);
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.devDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.devLine {
+  display: flex;
+  gap: 8px;
+  font-size: clamp(10px, 1.1vh, 13px);
+  color: var(--text-primary);
+}
+
+.devLabel {
+  color: var(--text-secondary);
+  min-width: 35px;
+}
+
+.devDeviation {
+  font-size: clamp(14px, 1.6vh, 18px);
+  font-weight: 700;
+}
+
+.devPositive {
+  color: #22c55e;
+}
+
+.devNegative {
+  color: #ef4444;
+}
+
+.devPark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: clamp(14px, 1.6vh, 18px);
+  font-weight: 600;
+  color: var(--text-primary);
+  align-self: center;
 }

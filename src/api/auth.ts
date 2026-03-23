@@ -39,7 +39,7 @@ const isProdHost = window.location.hostname === 'checkerboard.pro.lukoil.com';
 
 // DEV токен — только для локальной разработки
 // dev-chess-portal-2026-secret
-const DEV_ACCESS_TOKEN = '360632a5-b627-4307-b38d-55bbad00ffe2';
+const DEV_ACCESS_TOKEN = '2b082187-4b19-4661-a93c-d950fffe1a3d';
 
 /* ───────── 3. Читаем токены из URL (после IdM) ─────────── */
 let tokensReceivedFromUrl = false;

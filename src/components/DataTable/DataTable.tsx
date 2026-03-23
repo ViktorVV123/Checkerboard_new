@@ -14,6 +14,18 @@ export interface UpdateInfoData {
     [category: string]: { [sub: string]: string };
 }
 
+export interface DeviationData {
+    factExpected: number;
+    factShipment: number;
+    ozhidExpected: number;
+    ozhidShipment: number;
+    planExpected: number;
+    planShipment: number;
+    obrExpected: number;
+    obrShipment: number;
+    parkVolume: number;
+}
+
 interface DataTableProps {
     columns: Column[];
     data: any[];
@@ -22,6 +34,7 @@ interface DataTableProps {
     editable?: boolean;
     onCellEdit?: (rowId: number, field: string, value: string) => void;
     onFillDown?: (rowIds: number[], field: string, value: string) => void;
+    onDeviationData?: (data: DeviationData) => void;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -32,6 +45,7 @@ const DataTable: React.FC<DataTableProps> = ({
                                                  onCellEdit,
                                                  onFillDown,
                                                  originalData,
+                                                 onDeviationData,
                                              }) => {
     const [editingCell, setEditingCell] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
@@ -109,52 +123,37 @@ const DataTable: React.FC<DataTableProps> = ({
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isDragging.current || !fillSourceRef.current) return;
-
             const rects = rowRectsRef.current;
             const sourceIdx = fillSourceRef.current.rowIndex;
             const y = e.clientY;
-
             let targetIdx = sourceIdx;
             for (let i = sourceIdx + 1; i < rects.length; i++) {
                 const rect = rects[i];
                 const rowCenter = rect.top + rect.height / 2;
-                if (y >= rowCenter) {
-                    targetIdx = i;
-                } else {
-                    break;
-                }
+                if (y >= rowCenter) { targetIdx = i; } else { break; }
             }
-
             setFillTargetIndex(targetIdx);
         };
 
         const handleMouseUp = () => {
             if (!isDragging.current) return;
             isDragging.current = false;
-
             const source = fillSourceRef.current;
             const target = fillTargetRef.current;
             const currentData = processedDataRef.current;
-
             if (source && target !== null && target > source.rowIndex) {
                 const rowIds: number[] = [];
                 for (let i = source.rowIndex + 1; i <= target; i++) {
-                    if (currentData[i]) {
-                        rowIds.push(currentData[i].id);
-                    }
+                    if (currentData[i]) rowIds.push(currentData[i].id);
                 }
-
                 if (rowIds.length > 0) {
                     if (onFillDown) {
                         onFillDown(rowIds, source.colKey, String(source.value));
                     } else if (onCellEdit) {
-                        rowIds.forEach((id) => {
-                            onCellEdit(id, source.colKey, String(source.value));
-                        });
+                        rowIds.forEach((id) => onCellEdit(id, source.colKey, String(source.value)));
                     }
                 }
             }
-
             setFillSource(null);
             setFillTargetIndex(null);
             rowRectsRef.current = [];
@@ -162,7 +161,6 @@ const DataTable: React.FC<DataTableProps> = ({
 
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
-
         return () => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
@@ -171,11 +169,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
     const isCellInFillRange = (rowIndex: number, colKey: string): boolean => {
         if (!fillSource || fillTargetIndex === null) return false;
-        return (
-            colKey === fillSource.colKey &&
-            rowIndex > fillSource.rowIndex &&
-            rowIndex <= fillTargetIndex
-        );
+        return colKey === fillSource.colKey && rowIndex > fillSource.rowIndex && rowIndex <= fillTargetIndex;
     };
 
     // ── Даты ──
@@ -196,10 +190,15 @@ const DataTable: React.FC<DataTableProps> = ({
         railwayObr: 0, pipeObr: 0, mnppObr: 0, waterObr: 0,
     };
 
+    // Факт — только за прошедшие дни (date < today)
+    let factExpected = 0;
+    let factShipment = 0;
+
     // Ожид — суммируем за текущий месяц
     processedData.forEach((row) => {
         const dateStr = String(row.date);
         const rowMonth = Number(dateStr.slice(0, 6));
+        const rowDate = Number(row.date);
 
         if (rowMonth === currentMonth) {
             totals.plan += Number(row.plan) || 0;
@@ -209,16 +208,20 @@ const DataTable: React.FC<DataTableProps> = ({
             totals.pipeShipmentFact += Number(row.pipeShipmentFact) || 0;
             totals.mnppShipmentFact += Number(row.mnppShipmentFact) || 0;
             totals.waterShipmentFact += Number(row.waterShipmentFact) || 0;
+
+            if (rowDate < today) {
+                factExpected += Math.abs(Number(row.expected) || 0);
+                factShipment += Math.abs(Number(row.shipmentFact) || 0);
+            }
         }
     });
 
-    // План и ОБР — берём из одной строки (не суммируем, это месячное значение)
+    // План и ОБР — берём из одной строки (не суммируем)
     const latestRow = [...processedData]
         .reverse()
         .find((r) => Number(r.date) <= today && Number(r.date) >= currentMonth * 100 + 1);
 
     if (latestRow) {
-        totals.shipmentPlan = Number(latestRow.shipmentPlan) || 0;
         totals.railwayPlan = Number(latestRow.railwayPlan) || 0;
         totals.pipePlan = Number(latestRow.pipePlan) || 0;
         totals.mnppPlan = Number(latestRow.mnppPlan) || 0;
@@ -234,6 +237,26 @@ const DataTable: React.FC<DataTableProps> = ({
 
     const parkRow = processedData.find((r) => Number(r.parkVolume) > 0);
     if (parkRow) totals.parkVolume = Number(parkRow.parkVolume);
+
+    const planShipmentTotal = Math.abs(totals.railwayPlan) + Math.abs(totals.pipePlan) + Math.abs(totals.mnppPlan) + Math.abs(totals.waterPlan);
+    const obrShipmentTotal = Math.abs(totals.railwayObr) + Math.abs(totals.pipeObr) + Math.abs(totals.mnppObr) + Math.abs(totals.waterObr);
+
+    // Передаём данные для тултипа отклонений наверх
+    useEffect(() => {
+        if (onDeviationData && processedData.length > 0) {
+            onDeviationData({
+                factExpected,
+                factShipment,
+                ozhidExpected: Math.abs(totals.expected),
+                ozhidShipment: Math.abs(totals.shipmentFact),
+                planExpected: totals.plan,
+                planShipment: planShipmentTotal,
+                obrExpected: totals.obr,
+                obrShipment: obrShipmentTotal,
+                parkVolume: totals.parkVolume,
+            });
+        }
+    }, [data, editable]);
 
     const getRowClass = (date: number): string => {
         if (date < today) return s.pastRow;
@@ -263,54 +286,15 @@ const DataTable: React.FC<DataTableProps> = ({
                             const isEdited = row.editedFields?.includes(col.key);
                             const cellValue = row[col.key];
                             const inFillRange = isCellInFillRange(rowIndex, col.key);
-
-                            const isNegativeRemains =
-                                col.key === 'tradeRemains' &&
-                                Number(row.date) >= today &&
-                                cellValue !== null && cellValue !== undefined &&
-                                Number(cellValue) < 0;
-
-                            const isLowCapacity =
-                                col.key === 'freeCapacity' &&
-                                Number(row.date) >= today &&
-                                row.freeCapacity !== null && row.freeCapacity !== undefined &&
-                                row.expected !== null && row.expected !== undefined &&
-                                Number(row.freeCapacity) < Math.abs(Number(row.expected));
-
-                            const cellClass = [
-                                getColorClass(col.color),
-                                isEdited ? s.editedCell : '',
-                                editable && col.editable ? s.editableCell : '',
-                                isNegativeRemains ? s.yellowText : '',
-                                isLowCapacity ? s.redText : '',
-                                inFillRange ? s.fillPreview : '',
-                            ]
-                                .filter(Boolean)
-                                .join(' ');
-
-                            const showFillHandle =
-                                editable &&
-                                col.editable &&
-                                !isEditing &&
-                                cellValue !== null &&
-                                cellValue !== undefined &&
-                                cellValue !== '';
+                            const isNegativeRemains = col.key === 'tradeRemains' && Number(row.date) >= today && cellValue !== null && cellValue !== undefined && Number(cellValue) < 0;
+                            const isLowCapacity = col.key === 'freeCapacity' && Number(row.date) >= today && row.freeCapacity !== null && row.freeCapacity !== undefined && row.expected !== null && row.expected !== undefined && Number(row.freeCapacity) < Math.abs(Number(row.expected));
+                            const cellClass = [getColorClass(col.color), isEdited ? s.editedCell : '', editable && col.editable ? s.editableCell : '', isNegativeRemains ? s.yellowText : '', isLowCapacity ? s.redText : '', inFillRange ? s.fillPreview : ''].filter(Boolean).join(' ');
+                            const showFillHandle = editable && col.editable && !isEditing && cellValue !== null && cellValue !== undefined && cellValue !== '';
 
                             return (
-                                <td
-                                    key={col.key}
-                                    className={cellClass}
-                                    onClick={() => handleCellClick(row.id, col, row[col.key])}
-                                >
+                                <td key={col.key} className={cellClass} onClick={() => handleCellClick(row.id, col, row[col.key])}>
                                     {isEditing ? (
-                                        <input
-                                            className={s.cellInput}
-                                            value={editValue}
-                                            onChange={(e) => setEditValue(e.target.value)}
-                                            onBlur={() => handleCellSave(row.id, col.key)}
-                                            onKeyDown={(e) => handleKeyDown(e, row.id, col.key)}
-                                            autoFocus
-                                        />
+                                        <input className={s.cellInput} value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => handleCellSave(row.id, col.key)} onKeyDown={(e) => handleKeyDown(e, row.id, col.key)} autoFocus />
                                     ) : col.key === 'date' && formatDate ? (
                                         formatDate(row[col.key])
                                     ) : (
@@ -319,12 +303,7 @@ const DataTable: React.FC<DataTableProps> = ({
                                                 ? formatValue(col.absValue ? Math.abs(Number(fillSource?.value) || 0) : fillSource?.value, col.key !== 'date')
                                                 : formatValue(col.absValue ? Math.abs(Number(row[col.key]) || 0) : row[col.key], col.key !== 'date')}
                                             {showFillHandle && (
-                                                <span
-                                                    className={s.fillHandle}
-                                                    onMouseDown={(e) =>
-                                                        handleFillHandleMouseDown(e, rowIndex, col.key, cellValue)
-                                                    }
-                                                />
+                                                <span className={s.fillHandle} onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, col.key, cellValue)} />
                                             )}
                                         </>
                                     )}
@@ -338,26 +317,22 @@ const DataTable: React.FC<DataTableProps> = ({
                 <tr className={s.summaryRow}>
                     <td className={s.summaryLabel}>План</td>
                     <td>{Math.round(totals.plan).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.railwayPlan) + Math.abs(totals.pipePlan) + Math.abs(totals.mnppPlan) + Math.abs(totals.waterPlan)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(planShipmentTotal).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.railwayPlan)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.pipePlan)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.mnppPlan)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.waterPlan)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
+                    {columns.slice(7).map((col) => (<td key={col.key}></td>))}
                 </tr>
                 <tr className={s.summaryRow}>
                     <td className={s.summaryLabel}>ОБР</td>
                     <td>{Math.round(totals.obr).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.railwayObr) + Math.abs(totals.pipeObr) + Math.abs(totals.mnppObr) + Math.abs(totals.waterObr)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(obrShipmentTotal).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.railwayObr)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.pipeObr)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.mnppObr)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.waterObr)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
+                    {columns.slice(7).map((col) => (<td key={col.key}></td>))}
                 </tr>
                 <tr className={s.summaryRow}>
                     <td className={s.summaryLabel}>Ожид</td>
@@ -367,16 +342,12 @@ const DataTable: React.FC<DataTableProps> = ({
                     <td>{Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU')}</td>
                     <td>{Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
+                    {columns.slice(7).map((col) => (<td key={col.key}></td>))}
                 </tr>
                 <tr className={s.summaryRow}>
                     <td className={s.summaryLabel}>Объем парка</td>
                     <td>{Math.round(totals.parkVolume).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (
-                        <td key={col.key}></td>
-                    ))}
+                    {columns.slice(2).map((col) => (<td key={col.key}></td>))}
                 </tr>
                 </tfoot>
             </table>
