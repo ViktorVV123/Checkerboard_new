@@ -83,3 +83,7 @@ export const unpublishScenario = async (id: number): Promise<any> => {
     const { data } = await api.post(`/scenarios/${id}/unpublish`);
     return data;
 };
+export const getUpdateInfo = async (enterprise: string) => {
+    const { data } = await api.get(`/factories/${encodeURIComponent(enterprise)}/update-info`);
+    return data;
+};

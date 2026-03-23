@@ -1,7 +1,7 @@
 import React, {useEffect, useState, useRef, useCallback} from 'react';
 import Header from '../../components/Header/Header';
 import Tabs from '../../components/Tabs/Tabs';
-import DataTable from '../../components/DataTable/DataTable';
+import DataTable, {UpdateInfoData} from '../../components/DataTable/DataTable';
 import ApprovalDots from '../../components/ApprovalDots/ApprovalDots';
 import RejectModal from '../../components/RejectModal/RejectModal';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -17,16 +17,18 @@ import {
     getScenarioData,
     publishScenario,
     unpublishScenario,
+    getUpdateInfo,
 } from '../../api/factoriesApi';
 import {getTodayApprovals, voteApproval, ApprovalStatus} from '../../api/approvalsApi';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import {exportEnterpriseToExcel} from '../../utils/exportToExcel';
 import * as s from './FactoryPage.module.scss';
 import {getProductIndicator, IndicatorColor} from '@/utils/calculations';
 
 const APPROVERS_BY_ENTERPRISE: Record<string, string[]> = {
-    'ВНП': ['vlasyukviv', 'mikhajlovdmn', 'borzovpe', 'mikhajlovnn'],
-    'ННОС': ['vlasyukviv', 'mikhajlovdmn', 'borzovpe', 'mikhajlovnn'],
-    'ПНОС': ['vlasyukviv', 'mikhajlovdmn', 'borzovpe', 'mikhajlovnn'],
+    'ВНП': ['vlasyukviv', 'kislovdmm', 'borzovpe', 'ivanovdmitrya'],
+    'ННОС': ['vlasyukviv', 'kislovdmm', 'borzovpe', 'ivanovdmitrya'],
+    'ПНОС': ['vlasyukviv', 'kislovdmm', 'borzovpe', 'ivanovdmitrya'],
 };
 
 const getColumns = (enterprise: string, product: string) => {
@@ -93,6 +95,10 @@ const FactoryPage: React.FC = () => {
     const [showRejectModal, setShowRejectModal] = useState(false);
 
     const [editedProducts, setEditedProducts] = useState<Set<string>>(new Set());
+
+    const [updateInfo, setUpdateInfo] = useState<Record<string, Record<string, string>> | null>(null);
+    const [showUpdateTooltip, setShowUpdateTooltip] = useState(false);
+
 
     // Refs для доступа в обработчике Ctrl+Z
     const activeScenarioRef = useRef(activeScenario);
@@ -187,7 +193,8 @@ const FactoryPage: React.FC = () => {
         try {
             const list = await getTodayApprovals(ent);
             setApprovals(list);
-        } catch {}
+        } catch {
+        }
     };
 
     const isApprover = enterprise
@@ -198,7 +205,9 @@ const FactoryPage: React.FC = () => {
         try {
             await voteApproval(enterprise, 'approved');
             await loadApprovals(enterprise);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const handleRejectConfirm = async (comment: string) => {
@@ -206,7 +215,9 @@ const FactoryPage: React.FC = () => {
         try {
             await voteApproval(enterprise, 'rejected', comment);
             await loadApprovals(enterprise);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error(err);
+        }
     };
 
     const handleExport = async () => {
@@ -238,7 +249,10 @@ const FactoryPage: React.FC = () => {
     const detectEditedProducts = async (scenarioId: number, productList: string[], ent: string) => {
         try {
             const scenarioData = await getScenarioData(scenarioId);
-            if (!scenarioData.length) { setEditedProducts(new Set()); return; }
+            if (!scenarioData.length) {
+                setEditedProducts(new Set());
+                return;
+            }
             const editedIds = new Set(scenarioData.map((r: any) => Number(r.id)));
             const edited = new Set<string>();
             await Promise.all(productList.map(async (p) => {
@@ -246,7 +260,8 @@ const FactoryPage: React.FC = () => {
                 if (rows.some((r) => editedIds.has(r.id))) edited.add(p);
             }));
             setEditedProducts(edited);
-        } catch {}
+        } catch {
+        }
     };
 
     const publicScenarios = scenarios.filter((sc) => !sc.isDraft);
@@ -292,15 +307,25 @@ const FactoryPage: React.FC = () => {
 
     useEffect(() => {
         getEnterprises()
-            .then((list) => { setEnterprises(list); if (list.length > 0) setEnterprise(list[0]); })
-            .catch((err: any) => { if (err?.response?.status === 401) setAuthError(true); });
+            .then((list) => {
+                setEnterprises(list);
+                if (list.length > 0) setEnterprise(list[0]);
+            })
+            .catch((err: any) => {
+                if (err?.response?.status === 401) setAuthError(true);
+            });
     }, []);
 
     useEffect(() => {
         if (!enterprise || currentUsername === undefined) return;
         getProducts(enterprise)
-            .then((list) => { setProducts(list); if (list.length > 0) setProduct(list[0]); })
-            .catch((err: any) => { if (err?.response?.status === 401) setAuthError(true); });
+            .then((list) => {
+                setProducts(list);
+                if (list.length > 0) setProduct(list[0]);
+            })
+            .catch((err: any) => {
+                if (err?.response?.status === 401) setAuthError(true);
+            });
         loadScenarios(currentUsername);
         setActiveScenario(null);
         setEditedCells(new Map());
@@ -320,14 +345,27 @@ const FactoryPage: React.FC = () => {
         if (!enterprise || !product) return;
         setLoading(true);
         getProductData(enterprise, product)
-            .then((rows) => { setData(rows); setLoading(false); })
-            .catch((err: any) => { if (err?.response?.status === 401) setAuthError(true); setLoading(false); });
+            .then((rows) => {
+                setData(rows);
+                setLoading(false);
+            })
+            .catch((err: any) => {
+                if (err?.response?.status === 401) setAuthError(true);
+                setLoading(false);
+            });
     }, [enterprise, product]);
 
     useEffect(() => {
         if (!activeScenario || !data.length) return;
         loadScenarioEdits(activeScenario.id);
     }, [activeScenario, data, product]);
+
+    useEffect(() => {
+        if (!enterprise) return;
+        getUpdateInfo(enterprise)
+            .then(setUpdateInfo)
+            .catch(() => setUpdateInfo(null));
+    }, [enterprise]);
 
     const loadScenarioEdits = async (scenarioId: number) => {
         try {
@@ -510,12 +548,18 @@ const FactoryPage: React.FC = () => {
             const shipmentFields = ['railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact', 'waterShipmentFact'];
             if (shipmentFields.includes(field)) {
                 const cr = {...originalRow};
-                newEdited.forEach((val, k) => { const [rId, f] = k.split('-'); if (Number(rId) === rowId) cr[f] = Number(val); });
+                newEdited.forEach((val, k) => {
+                    const [rId, f] = k.split('-');
+                    if (Number(rId) === rowId) cr[f] = Number(val);
+                });
                 newEdited.set(`${rowId}-shipmentFact`, String((Number(cr.railwayShipmentFact) || 0) + (Number(cr.pipeShipmentFact) || 0) + (Number(cr.mnppShipmentFact) || 0) + (Number(cr.waterShipmentFact) || 0)));
             }
             if (['tradeRemains', 'parkVolume'].includes(field)) {
                 const cr = {...originalRow};
-                newEdited.forEach((val, k) => { const [rId, f] = k.split('-'); if (Number(rId) === rowId) cr[f] = Number(val); });
+                newEdited.forEach((val, k) => {
+                    const [rId, f] = k.split('-');
+                    if (Number(rId) === rowId) cr[f] = Number(val);
+                });
                 newEdited.set(`${rowId}-freeCapacity`, String((Number(cr.parkVolume) || 0) - (Number(cr.tradeRemains) || 0)));
             }
         }
@@ -602,7 +646,8 @@ const FactoryPage: React.FC = () => {
                                     <span className={s.scenarioName}>{sc.name}</span>
                                     <span className={s.scenarioAuthor}>{sc.author}</span>
                                 </button>
-                                <button className={s.scenarioDelete} onClick={() => handleDeleteScenario(sc.id)}>×</button>
+                                <button className={s.scenarioDelete} onClick={() => handleDeleteScenario(sc.id)}>×
+                                </button>
                             </div>
                         ))
                     )}
@@ -660,7 +705,8 @@ const FactoryPage: React.FC = () => {
                     <div className={s.modalContent} onClick={(e) => e.stopPropagation()}>
                         <h3>{creatingDraft ? 'Новый черновик' : 'Новый сценарий'}</h3>
                         {creatingDraft && (
-                            <p className={s.draftHint}>Черновик виден только вам. После публикации станет доступен всем.</p>
+                            <p className={s.draftHint}>Черновик виден только вам. После публикации станет доступен
+                                всем.</p>
                         )}
                         <input
                             className={s.modalInput}
@@ -685,7 +731,8 @@ const FactoryPage: React.FC = () => {
                             style={{marginTop: '8px'}}
                         />
                         <div className={s.modalButtons}>
-                            <button className={s.modalCancel} onClick={() => setShowScenarioModal(false)}>Отмена</button>
+                            <button className={s.modalCancel} onClick={() => setShowScenarioModal(false)}>Отмена
+                            </button>
                             <button className={s.modalSave} onClick={handleCreateScenario}>
                                 {creatingDraft ? 'Создать черновик' : 'Создать'}
                             </button>
@@ -708,15 +755,64 @@ const FactoryPage: React.FC = () => {
                 {loading ? (
                     <div className={s.loader}>Загрузка данных...</div>
                 ) : (
-                    <DataTable
-                        columns={getColumns(enterprise, product)}
-                        data={displayData}
-                        originalData={activeScenario ? data : undefined}
-                        formatDate={formatDate}
-                        editable={isEditing}
-                        onCellEdit={handleCellEdit}
-                        onFillDown={handleFillDown}
-                    />
+                    <>
+                        <DataTable
+                            columns={getColumns(enterprise, product)}
+                            data={displayData}
+                            originalData={activeScenario ? data : undefined}
+                            formatDate={formatDate}
+                            editable={isEditing}
+                            onCellEdit={handleCellEdit}
+                            onFillDown={handleFillDown}
+                        />
+                        {updateInfo && (
+                            <div
+                                className={s.updateInfoTrigger}
+                                onMouseEnter={() => setShowUpdateTooltip(true)}
+                                onMouseLeave={() => setShowUpdateTooltip(false)}
+                            >
+                                <AccessTimeIcon style={{fontSize: 'clamp(24px, 3vh, 32px)'}}/>
+                                <div className={s.updateInfoText}>
+                                    <span className={s.updateInfoLabel}>Время обновления данных</span>
+                                    {updateInfo['Обновлено'] && (
+                                        <span className={s.updateInfoDate}>
+                    Данные обновлены {updateInfo['Обновлено'][''] || Object.values(updateInfo['Обновлено'])[0]}
+                </span>
+                                    )}
+                                </div>
+                                {showUpdateTooltip && (
+                                    <div className={s.updateTooltip}>
+                                        <div className={s.updateTooltipTitle}>Время обновления данных</div>
+                                        <table className={s.updateTooltipTable}>
+                                            <thead>
+                                            <tr>
+                                                <th></th>
+                                                <th>Произ-во</th>
+                                                <th>Отгрузка</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {['План', 'Факт', 'Ожид', 'ОБР'].filter((cat) => updateInfo[cat]).map((cat) => (
+                                                <tr key={cat}>
+                                                    <td className={s.updateTooltipCategory}>{cat}</td>
+                                                    <td>{updateInfo[cat]['Произ-во'] || '—'}</td>
+                                                    <td>{updateInfo[cat]['Отгрузка'] || '—'}</td>
+                                                </tr>
+                                            ))}
+                                            {updateInfo['Обновлено'] && (
+                                                <tr className={s.updateTooltipUpdated}>
+                                                    <td colSpan={3}>
+                                                        Данные обновлены {updateInfo['Обновлено'][''] || Object.values(updateInfo['Обновлено'])[0]}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

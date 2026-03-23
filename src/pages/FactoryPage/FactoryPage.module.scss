@@ -377,3 +377,100 @@
   padding: 0 clamp(4px, 0.5vw, 8px);
   align-self: center;
 }
+
+.updateInfoTrigger {
+  position: fixed;
+  bottom: clamp(60px, 10vh, 80px);
+  right: clamp(166px, 13vw, 200px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: var(--tabs-font);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  z-index: 10;
+
+  &:hover { opacity: 1; }
+}
+
+.updateInfoText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.updateInfoLabel {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.updateInfoDate {
+  color: var(--tab-inactive);
+  font-size: 0.85em;
+}
+
+.updateTooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  z-index: 50;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+
+.updateTooltipTitle {
+  font-size: clamp(12px, 1.3vh, 15px);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.updateTooltipTable {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: clamp(11px, 1.2vh, 14px);
+
+  th, td {
+    padding: 5px 14px;
+    text-align: left;
+    font-size: inherit;
+    background: none;
+    border: none;
+    position: static;
+    white-space: nowrap;
+  }
+
+  th {
+    color: var(--tab-inactive);
+    font-weight: 600;
+    padding-bottom: 8px;
+  }
+
+  td {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.updateTooltipCategory {
+  font-weight: 600;
+  color: var(--accent) !important;
+  padding-right: 20px !important;
+}
+
+.updateTooltipUpdated td {
+  padding-top: 10px !important;
+  border-top: 1px solid var(--border) !important;
+  color: var(--tab-inactive) !important;
+  font-size: clamp(10px, 1.1vh, 13px);
+}

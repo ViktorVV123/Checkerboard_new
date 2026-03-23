@@ -10,6 +10,10 @@ interface Column {
     absValue?: boolean;
 }
 
+export interface UpdateInfoData {
+    [category: string]: { [sub: string]: string };
+}
+
 interface DataTableProps {
     columns: Column[];
     data: any[];
@@ -174,16 +178,25 @@ const DataTable: React.FC<DataTableProps> = ({
         );
     };
 
+    // ── Даты ──
     const now = new Date();
     const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
+    const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    const weekFromNow = new Date(now);
+    weekFromNow.setDate(weekFromNow.getDate() + 6);
+    const weekEnd = weekFromNow.getFullYear() * 10000 + (weekFromNow.getMonth() + 1) * 100 + weekFromNow.getDate();
 
+    // ── Totals ──
     const totals: Record<string, number> = {
         plan: 0, expected: 0, shipmentFact: 0,
         railwayShipmentFact: 0, pipeShipmentFact: 0,
         mnppShipmentFact: 0, waterShipmentFact: 0,
         obr: 0, parkVolume: 0,
+        shipmentPlan: 0, railwayPlan: 0, pipePlan: 0, mnppPlan: 0, waterPlan: 0,
+        railwayObr: 0, pipeObr: 0, mnppObr: 0, waterObr: 0,
     };
 
+    // Ожид — суммируем за текущий месяц
     processedData.forEach((row) => {
         const dateStr = String(row.date);
         const rowMonth = Number(dateStr.slice(0, 6));
@@ -199,16 +212,28 @@ const DataTable: React.FC<DataTableProps> = ({
         }
     });
 
+    // План и ОБР — берём из одной строки (не суммируем, это месячное значение)
+    const latestRow = [...processedData]
+        .reverse()
+        .find((r) => Number(r.date) <= today && Number(r.date) >= currentMonth * 100 + 1);
+
+    if (latestRow) {
+        totals.shipmentPlan = Number(latestRow.shipmentPlan) || 0;
+        totals.railwayPlan = Number(latestRow.railwayPlan) || 0;
+        totals.pipePlan = Number(latestRow.pipePlan) || 0;
+        totals.mnppPlan = Number(latestRow.mnppPlan) || 0;
+        totals.waterPlan = Number(latestRow.waterPlan) || 0;
+        totals.railwayObr = Number(latestRow.railwayObr) || 0;
+        totals.pipeObr = Number(latestRow.pipeObr) || 0;
+        totals.mnppObr = Number(latestRow.mnppObr) || 0;
+        totals.waterObr = Number(latestRow.waterObr) || 0;
+    }
+
     const obrRow = processedData.find((r) => r.obr);
     if (obrRow) totals.obr = Number(obrRow.obr);
 
     const parkRow = processedData.find((r) => Number(r.parkVolume) > 0);
     if (parkRow) totals.parkVolume = Number(parkRow.parkVolume);
-
-    const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
-    const weekFromNow = new Date(now);
-    weekFromNow.setDate(weekFromNow.getDate() + 6);
-    const weekEnd = weekFromNow.getFullYear() * 10000 + (weekFromNow.getMonth() + 1) * 100 + weekFromNow.getDate();
 
     const getRowClass = (date: number): string => {
         if (date < today) return s.pastRow;
@@ -313,14 +338,24 @@ const DataTable: React.FC<DataTableProps> = ({
                 <tr className={s.summaryRow}>
                     <td className={s.summaryLabel}>План</td>
                     <td>{Math.round(totals.plan).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (
+                    <td>{Math.round(Math.abs(totals.railwayPlan) + Math.abs(totals.pipePlan) + Math.abs(totals.mnppPlan) + Math.abs(totals.waterPlan)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.railwayPlan)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.pipePlan)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.mnppPlan)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.waterPlan)).toLocaleString('ru-RU')}</td>
+                    {columns.slice(7).map((col) => (
                         <td key={col.key}></td>
                     ))}
                 </tr>
                 <tr className={s.summaryRow}>
                     <td className={s.summaryLabel}>ОБР</td>
                     <td>{Math.round(totals.obr).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (
+                    <td>{Math.round(Math.abs(totals.railwayObr) + Math.abs(totals.pipeObr) + Math.abs(totals.mnppObr) + Math.abs(totals.waterObr)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.railwayObr)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.pipeObr)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.mnppObr)).toLocaleString('ru-RU')}</td>
+                    <td>{Math.round(Math.abs(totals.waterObr)).toLocaleString('ru-RU')}</td>
+                    {columns.slice(7).map((col) => (
                         <td key={col.key}></td>
                     ))}
                 </tr>

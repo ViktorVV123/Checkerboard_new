@@ -1,13 +1,37 @@
-/* ==========================================================================
-   FLUID LAYOUT — всё масштабируется через clamp() от viewport height.
-   dvh (dynamic viewport height) учитывает тулбар браузера.
-   Fallback на vh для старых браузеров.
-   
-   Целевые диапазоны (viewport height после тулбара):
-     ~650px  (маленький ноут + тулбар) → min значения
-     ~900px  (1920×1080 - тулбар)      → средние
-     ~1300px (2560×1440 - тулбар)      → max значения
-   ========================================================================== */
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    src: url('./fonts/Inter-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+    src: url('./fonts/Inter-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+    src: url('./fonts/Inter-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+    src: url('./fonts/Inter-Bold.woff2') format('woff2');
+}
+
+
 
 :root {
     /* ── Цвета (dark, дефолт) ── */
@@ -31,24 +55,26 @@
 
     /* ── Fluid типографика и отступы ── */
 
-    /* Основной шрифт таблицы — самый важный, определяет плотность строк */
-    --base-font: clamp(11px, 1.4vh, 22px);    /* было 1.55vh */
-    --row-padding: clamp(0px, 0.1vh, 3px);    /* было 0.15vh */
+    /* Основной шрифт таблицы */
+    --base-font: clamp(12px, 1.75vh, 18px);
+
+    /* Паддинг строк */
+    --row-padding: clamp(0px, 0.08vh, 1px);
 
     /* Шрифт вкладок продуктов */
-    --tabs-font: clamp(10px, 1.4vh, 18px);
+    --tabs-font: clamp(13px, 1.5vh, 16px);
 
-    /* UI-элементы: кнопки, лейблы, сценарии */
-    --ui-font: clamp(10px, 1.2vh, 15px);
+    /* UI-элементы */
+    --ui-font: clamp(10px, 1vh, 13px);
 
     /* Вертикальный паддинг хедера */
-    --header-padding-v: clamp(3px, 0.55vh, 10px);
+    --header-padding-v: clamp(2px, 0.35vh, 5px);
 
     /* Вертикальный паддинг scenario bar */
-    --bar-padding-v: clamp(2px, 0.45vh, 8px);
+    --bar-padding-v: clamp(2px, 0.3vh, 5px);
 
     /* Вертикальный паддинг вкладок */
-    --tabs-padding-v: clamp(3px, 0.5vh, 9px);
+    --tabs-padding-v: clamp(4px, 0.55vh, 6px);
 }
 
 [data-theme='light'] {
@@ -78,7 +104,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     transition: background-color 0.3s, color 0.3s;
