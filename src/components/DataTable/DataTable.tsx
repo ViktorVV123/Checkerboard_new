@@ -242,21 +242,29 @@ const DataTable: React.FC<DataTableProps> = ({
     const obrShipmentTotal = Math.abs(totals.railwayObr) + Math.abs(totals.pipeObr) + Math.abs(totals.mnppObr) + Math.abs(totals.waterObr);
 
     // Передаём данные для тултипа отклонений наверх
+    const prevDeviationRef = useRef<string>('');
+
     useEffect(() => {
-        if (onDeviationData && processedData.length > 0) {
-            onDeviationData({
-                factExpected,
-                factShipment,
-                ozhidExpected: Math.abs(totals.expected),
-                ozhidShipment: Math.abs(totals.shipmentFact),
-                planExpected: totals.plan,
-                planShipment: planShipmentTotal,
-                obrExpected: totals.obr,
-                obrShipment: obrShipmentTotal,
-                parkVolume: totals.parkVolume,
-            });
+        if (!onDeviationData || processedData.length === 0) return;
+
+        const newData: DeviationData = {
+            factExpected,
+            factShipment,
+            ozhidExpected: Math.abs(totals.expected),
+            ozhidShipment: Math.abs(totals.shipmentFact),
+            planExpected: totals.plan,
+            planShipment: planShipmentTotal,
+            obrExpected: totals.obr,
+            obrShipment: obrShipmentTotal,
+            parkVolume: totals.parkVolume,
+        };
+
+        const key = JSON.stringify(newData);
+        if (key !== prevDeviationRef.current) {
+            prevDeviationRef.current = key;
+            onDeviationData(newData);
         }
-    }, [data, editable]);
+    });
 
     const getRowClass = (date: number): string => {
         if (date < today) return s.pastRow;
