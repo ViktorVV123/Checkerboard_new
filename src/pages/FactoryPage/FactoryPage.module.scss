@@ -383,7 +383,7 @@
 
 .updateInfoTrigger {
   position: fixed;
-  bottom: clamp(60px, 10vh, 80px);
+  bottom: clamp(30px, 10vh, 65px);
   right: clamp(166px, 13vw, 200px);
   display: flex;
   align-items: center;
@@ -482,7 +482,7 @@
 
 .deviationTrigger {
   position: fixed;
-  bottom: clamp(60px, 10vh, 80px);
+  bottom: clamp(30px, 10vh, 65px);
   right: clamp(440px, 35vw, 550px);
   display: flex;
   align-items: center;

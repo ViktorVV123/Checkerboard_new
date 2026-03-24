@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import * as s from './DataTable.module.scss';
-import { calculateAllRows } from '../../utils/calculations';
+import React, {useState, useCallback, useRef, useEffect} from 'react';
+import * as s from './TestDataTable.module.scss';
+import {calculateAllRows} from '@/utils/calculations';
 
 interface Column {
     key: string;
@@ -24,6 +24,21 @@ export interface DeviationData {
     obrExpected: number;
     obrShipment: number;
     parkVolume: number;
+    // Детальные данные для таблицы
+    ozhidShipmentFact: number;
+    ozhidRailway: number;
+    ozhidPipe: number;
+    ozhidMnpp: number;
+    ozhidWater: number;
+    planRailway: number;
+    planPipe: number;
+    planMnpp: number;
+    planWater: number;
+    obrRailway: number;
+    obrPipe: number;
+    obrMnpp: number;
+    obrWater: number;
+    obrTotal: number;
 }
 
 interface DataTableProps {
@@ -37,16 +52,16 @@ interface DataTableProps {
     onDeviationData?: (data: DeviationData) => void;
 }
 
-const DataTable: React.FC<DataTableProps> = ({
-                                                 columns,
-                                                 data,
-                                                 formatDate,
-                                                 editable = false,
-                                                 onCellEdit,
-                                                 onFillDown,
-                                                 originalData,
-                                                 onDeviationData,
-                                             }) => {
+const TestDataTable: React.FC<DataTableProps> = ({
+                                                     columns,
+                                                     data,
+                                                     formatDate,
+                                                     editable = false,
+                                                     onCellEdit,
+                                                     onFillDown,
+                                                     originalData,
+                                                     onDeviationData,
+                                                 }) => {
     const [editingCell, setEditingCell] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [fillSource, setFillSource] = useState<{ rowIndex: number; colKey: string; value: any } | null>(null);
@@ -88,9 +103,7 @@ const DataTable: React.FC<DataTableProps> = ({
     };
 
     const handleCellSave = (rowId: number, field: string) => {
-        if (onCellEdit) {
-            onCellEdit(rowId, field, editValue);
-        }
+        if (onCellEdit) onCellEdit(rowId, field, editValue);
         setEditingCell(null);
     };
 
@@ -104,9 +117,8 @@ const DataTable: React.FC<DataTableProps> = ({
             e.preventDefault();
             e.stopPropagation();
             isDragging.current = true;
-            setFillSource({ rowIndex, colKey, value });
+            setFillSource({rowIndex, colKey, value});
             setFillTargetIndex(rowIndex);
-
             if (tbodyRef.current) {
                 const rows = tbodyRef.current.querySelectorAll('tr');
                 rowRectsRef.current = Array.from(rows).map((r) => r.getBoundingClientRect());
@@ -130,7 +142,11 @@ const DataTable: React.FC<DataTableProps> = ({
             for (let i = sourceIdx + 1; i < rects.length; i++) {
                 const rect = rects[i];
                 const rowCenter = rect.top + rect.height / 2;
-                if (y >= rowCenter) { targetIdx = i; } else { break; }
+                if (y >= rowCenter) {
+                    targetIdx = i;
+                } else {
+                    break;
+                }
             }
             setFillTargetIndex(targetIdx);
         };
@@ -186,15 +202,13 @@ const DataTable: React.FC<DataTableProps> = ({
         railwayShipmentFact: 0, pipeShipmentFact: 0,
         mnppShipmentFact: 0, waterShipmentFact: 0,
         obr: 0, parkVolume: 0,
-        shipmentPlan: 0, railwayPlan: 0, pipePlan: 0, mnppPlan: 0, waterPlan: 0,
+        railwayPlan: 0, pipePlan: 0, mnppPlan: 0, waterPlan: 0,
         railwayObr: 0, pipeObr: 0, mnppObr: 0, waterObr: 0,
     };
 
-    // Факт — только за прошедшие дни (date < today)
     let factExpected = 0;
     let factShipment = 0;
 
-    // Ожид — суммируем за текущий месяц
     processedData.forEach((row) => {
         const dateStr = String(row.date);
         const rowMonth = Number(dateStr.slice(0, 6));
@@ -216,7 +230,6 @@ const DataTable: React.FC<DataTableProps> = ({
         }
     });
 
-    // План и ОБР — берём из одной строки (не суммируем)
     const latestRow = [...processedData]
         .reverse()
         .find((r) => Number(r.date) <= today && Number(r.date) >= currentMonth * 100 + 1);
@@ -241,12 +254,11 @@ const DataTable: React.FC<DataTableProps> = ({
     const planShipmentTotal = Math.abs(totals.railwayPlan) + Math.abs(totals.pipePlan) + Math.abs(totals.mnppPlan) + Math.abs(totals.waterPlan);
     const obrShipmentTotal = Math.abs(totals.railwayObr) + Math.abs(totals.pipeObr) + Math.abs(totals.mnppObr) + Math.abs(totals.waterObr);
 
-    // Передаём данные для тултипа отклонений наверх
+    // Передаём данные наверх
     const prevDeviationRef = useRef<string>('');
 
     useEffect(() => {
         if (!onDeviationData || processedData.length === 0) return;
-
         const newData: DeviationData = {
             factExpected,
             factShipment,
@@ -257,15 +269,27 @@ const DataTable: React.FC<DataTableProps> = ({
             obrExpected: totals.obr,
             obrShipment: obrShipmentTotal,
             parkVolume: totals.parkVolume,
+            ozhidShipmentFact: Math.abs(totals.shipmentFact),
+            ozhidRailway: Math.abs(totals.railwayShipmentFact),
+            ozhidPipe: Math.abs(totals.pipeShipmentFact),
+            ozhidMnpp: Math.abs(totals.mnppShipmentFact),
+            ozhidWater: Math.abs(totals.waterShipmentFact),
+            planRailway: Math.abs(totals.railwayPlan),
+            planPipe: Math.abs(totals.pipePlan),
+            planMnpp: Math.abs(totals.mnppPlan),
+            planWater: Math.abs(totals.waterPlan),
+            obrRailway: Math.abs(totals.railwayObr),
+            obrPipe: Math.abs(totals.pipeObr),
+            obrMnpp: Math.abs(totals.mnppObr),
+            obrWater: Math.abs(totals.waterObr),
+            obrTotal: totals.obr,
         };
-
         const key = JSON.stringify(newData);
         if (key !== prevDeviationRef.current) {
             prevDeviationRef.current = key;
             onDeviationData(newData);
         }
     });
-
     const getRowClass = (date: number): string => {
         if (date < today) return s.pastRow;
         if (date >= today && date <= weekEnd) return s.currentWeekRow;
@@ -300,9 +324,13 @@ const DataTable: React.FC<DataTableProps> = ({
                             const showFillHandle = editable && col.editable && !isEditing && cellValue !== null && cellValue !== undefined && cellValue !== '';
 
                             return (
-                                <td key={col.key} className={cellClass} onClick={() => handleCellClick(row.id, col, row[col.key])}>
+                                <td key={col.key} className={cellClass}
+                                    onClick={() => handleCellClick(row.id, col, row[col.key])}>
                                     {isEditing ? (
-                                        <input className={s.cellInput} value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={() => handleCellSave(row.id, col.key)} onKeyDown={(e) => handleKeyDown(e, row.id, col.key)} autoFocus />
+                                        <input className={s.cellInput} value={editValue}
+                                               onChange={(e) => setEditValue(e.target.value)}
+                                               onBlur={() => handleCellSave(row.id, col.key)}
+                                               onKeyDown={(e) => handleKeyDown(e, row.id, col.key)} autoFocus/>
                                     ) : col.key === 'date' && formatDate ? (
                                         formatDate(row[col.key])
                                     ) : (
@@ -311,7 +339,8 @@ const DataTable: React.FC<DataTableProps> = ({
                                                 ? formatValue(col.absValue ? Math.abs(Number(fillSource?.value) || 0) : fillSource?.value, col.key !== 'date')
                                                 : formatValue(col.absValue ? Math.abs(Number(row[col.key]) || 0) : row[col.key], col.key !== 'date')}
                                             {showFillHandle && (
-                                                <span className={s.fillHandle} onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, col.key, cellValue)} />
+                                                <span className={s.fillHandle}
+                                                      onMouseDown={(e) => handleFillHandleMouseDown(e, rowIndex, col.key, cellValue)}/>
                                             )}
                                         </>
                                     )}
@@ -321,46 +350,9 @@ const DataTable: React.FC<DataTableProps> = ({
                     </tr>
                 ))}
                 </tbody>
-                <tfoot>
-                <tr className={s.summaryRow}>
-                    <td className={s.summaryLabel}>План</td>
-                    <td>{Math.round(totals.plan).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(planShipmentTotal).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.railwayPlan)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.pipePlan)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.mnppPlan)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.waterPlan)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (<td key={col.key}></td>))}
-                </tr>
-                <tr className={s.summaryRow}>
-                    <td className={s.summaryLabel}>ОБР</td>
-                    <td>{Math.round(totals.obr).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(obrShipmentTotal).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.railwayObr)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.pipeObr)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.mnppObr)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.waterObr)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (<td key={col.key}></td>))}
-                </tr>
-                <tr className={s.summaryRow}>
-                    <td className={s.summaryLabel}>Ожид</td>
-                    <td>{Math.round(Math.abs(totals.expected)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.shipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.railwayShipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.pipeShipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.mnppShipmentFact)).toLocaleString('ru-RU')}</td>
-                    <td>{Math.round(Math.abs(totals.waterShipmentFact)).toLocaleString('ru-RU')}</td>
-                    {columns.slice(7).map((col) => (<td key={col.key}></td>))}
-                </tr>
-                {/*<tr className={s.summaryRow}>
-                    <td className={s.summaryLabel}>Объем парка</td>
-                    <td>{Math.round(totals.parkVolume).toLocaleString('ru-RU')}</td>
-                    {columns.slice(2).map((col) => (<td key={col.key}></td>))}
-                </tr>*/}
-                </tfoot>
             </table>
         </div>
     );
 };
 
-export default DataTable;
+export default TestDataTable;
