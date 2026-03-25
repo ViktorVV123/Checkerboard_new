@@ -65,7 +65,7 @@
     --tabs-font: clamp(15px, 1.7vh, 19px);
 
     /* UI-элементы */
-    --ui-font: clamp(13px, 1vh, 16px);
+    --ui-font: clamp(14px, 1.5vh, 18px);
 
     /* Вертикальный паддинг хедера */
     --header-padding-v: clamp(2px, 0.35vh, 5px);
@@ -121,5 +121,43 @@ html, body, #root {
 @supports (height: 100dvh) {
     html, body, #root {
         height: 100dvh;
+    }
+}
+/* ── Custom Scrollbar ── */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+}
+
+[data-theme='light'] {
+    * {
+        scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.15);
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.25);
+        }
     }
 }

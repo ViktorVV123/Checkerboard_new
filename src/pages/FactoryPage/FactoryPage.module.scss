@@ -1,6 +1,6 @@
-/* FactoryPage — корневой layout.
-   Строго вписывается в 100dvh (высота viewport минус тулбар браузера).
-   Все дочерние блоки flex-shrink: 0 кроме .content, который забирает остаток. */
+/* Всё в один экран без скролла.
+   .page = 100% высоты. header/scenarioBar/tabs/bottomStrip = flex-shrink:0.
+   .content = flex:1 забирает остаток. Таблица внутри сжимается. */
 
 .page {
   display: flex;
@@ -8,18 +8,17 @@
   height: 100%;
   overflow: hidden;
   background-color: var(--bg-primary);
-  width: 85vw;
+  width: 86vw;
   margin: 0 auto;
-  position: relative;  /* добавь эту строку */
+  position: relative;
 }
 
 .content {
   flex: 1 1 0;
-  min-height: 0;        /* критично — без этого flex-child не сжимается */
+  min-height: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding-top: clamp(2px, 0.3vh, 6px);
 }
 
 .loader {
@@ -37,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--bar-padding-v) clamp(12px, 1.5vw, 40px);
+  padding: clamp(1px, 0.2vh, 4px) clamp(12px, 1.5vw, 40px);
   background-color: var(--bg-secondary);
   gap: clamp(4px, 0.4vw, 8px);
   flex-shrink: 0;
@@ -45,8 +44,8 @@
 
 .scenarioLeft {
   display: flex;
-
   align-items: center;
+
   gap: clamp(2px, 0.3vw, 4px);
   overflow-x: auto;
   min-width: 0;
@@ -61,16 +60,16 @@
 }
 
 .scenarioBtn {
-  color: var(--text-primary);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
+  padding: clamp(1px, 0.2vh, 4px) clamp(6px, 0.6vw, 14px);
   border: 1px solid var(--border);
   border-radius: 6px;
   background-color: transparent;
   cursor: pointer;
   white-space: nowrap;
+  color:var(--text-primary);
   transition: all 0.2s;
   gap: 1px;
   flex-shrink: 0;
@@ -84,7 +83,7 @@
 }
 
 .scenarioAuthor {
-  font-size: clamp(8px, 1vh, 13px);
+  font-size: clamp(7px, 0.8vh, 11px);
   color: var(--text-secondary);
 }
 
@@ -96,7 +95,7 @@
 }
 
 .scenarioDelete {
-  padding: clamp(2px, 0.3vh, 4px) clamp(4px, 0.4vw, 6px);
+  padding: clamp(1px, 0.2vh, 3px) clamp(3px, 0.3vw, 6px);
   border: none;
   background: transparent;
   color: var(--text-secondary);
@@ -113,7 +112,7 @@
 }
 
 .saveBtn {
-  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
+  padding: clamp(1px, 0.2vh, 4px) clamp(6px, 0.6vw, 14px);
   border: 1px solid #22c55e;
   border-radius: 6px;
   background-color: rgba(34, 197, 94, 0.1);
@@ -121,7 +120,6 @@
   cursor: pointer;
   font-size: var(--ui-font);
   white-space: nowrap;
-  transition: all 0.2s;
   &:hover { background-color: rgba(34, 197, 94, 0.2); }
 }
 
@@ -129,7 +127,7 @@
   display: flex;
   align-items: center;
   gap: clamp(3px, 0.3vw, 5px);
-  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
+  padding: clamp(1px, 0.2vh, 4px) clamp(6px, 0.6vw, 14px);
   border: none;
   border-radius: 8px;
   background-color: var(--accent);
@@ -138,20 +136,11 @@
   font-size: var(--ui-font);
   font-weight: 600;
   white-space: nowrap;
-  transition: all 0.2s;
-  &:hover {
-    background-color: var(--accent-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(107, 155, 210, 0.3);
-  }
-  &:active {
-    transform: translateY(0);
-    box-shadow: none;
-  }
+  &:hover { background-color: var(--accent-hover); }
 }
 
 .refreshBtn {
-  padding: var(--bar-padding-v) clamp(4px, 0.4vw, 8px);
+  padding: clamp(1px, 0.2vh, 4px) clamp(4px, 0.4vw, 8px);
   background-color: transparent;
   border: none;
   color: var(--text-primary);
@@ -159,17 +148,13 @@
   font-size: var(--ui-font);
   display: flex;
   align-items: center;
-  transition: all 0.2s;
 }
 
-/* ── Модалки ── */
+/* ── Modal ── */
 
 .modal {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
@@ -181,18 +166,14 @@
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: clamp(16px, 2vh, 24px);
+  padding: clamp(12px, 1.5vh, 20px);
   min-width: min(360px, 90vw);
-  h3 {
-    margin-bottom: clamp(10px, 1.2vh, 16px);
-    color: var(--text-primary);
-    font-size: clamp(13px, 1.5vh, 18px);
-  }
+  h3 { margin-bottom: clamp(8px, 1vh, 14px); color: var(--text-primary); font-size: clamp(12px, 1.3vh, 16px); }
 }
 
 .modalInput {
   width: 100%;
-  padding: clamp(6px, 0.8vh, 10px) 12px;
+  padding: clamp(4px, 0.5vh, 8px) 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background-color: var(--bg-primary);
@@ -206,33 +187,32 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: clamp(10px, 1.2vh, 16px);
+  margin-top: clamp(8px, 1vh, 14px);
+}
+
+.modalCancel, .modalSave {
+  padding: clamp(4px, 0.5vh, 7px) clamp(8px, 0.8vw, 14px);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: var(--ui-font);
 }
 
 .modalCancel {
-  padding: clamp(5px, 0.6vh, 8px) clamp(10px, 1vw, 16px);
   border: 1px solid var(--border);
-  border-radius: 8px;
   background: transparent;
   color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--ui-font);
 }
 
 .modalSave {
-  padding: clamp(5px, 0.6vh, 8px) clamp(10px, 1vw, 16px);
   border: none;
-  border-radius: 8px;
   background-color: var(--accent);
   color: #ffffff;
-  cursor: pointer;
-  font-size: var(--ui-font);
   &:hover { background-color: var(--accent-hover); }
 }
 
 .modalTextarea {
   width: 100%;
-  padding: clamp(6px, 0.8vh, 10px) 12px;
+  padding: clamp(4px, 0.5vh, 8px) 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background-color: var(--bg-primary);
@@ -244,8 +224,6 @@
   &:focus { border-color: var(--accent); }
 }
 
-/* ── Черновики ── */
-
 .draft {
   border-style: dashed !important;
   border-color: var(--accent) !important;
@@ -253,90 +231,52 @@
 }
 
 .draftHint {
-  font-size: clamp(10px, 1vh, 13px);
+  font-size: clamp(9px, 0.9vh, 12px);
   color: var(--text-secondary);
-  margin-bottom: clamp(8px, 1vh, 12px);
-  padding: clamp(5px, 0.6vh, 8px) 12px;
+  margin-bottom: clamp(6px, 0.7vh, 10px);
+  padding: clamp(4px, 0.4vh, 6px) 10px;
   background: rgba(107, 155, 210, 0.08);
   border-radius: 6px;
   border-left: 3px solid var(--accent);
 }
 
-.publishBtn {
-  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
-  border: 1px solid var(--accent);
+.publishBtn, .unpublishBtn {
+  padding: clamp(1px, 0.2vh, 4px) clamp(6px, 0.6vw, 14px);
   border-radius: 6px;
-  background-color: rgba(107, 155, 210, 0.1);
-  color: var(--accent);
   cursor: pointer;
   font-size: var(--ui-font);
   white-space: nowrap;
-  transition: all 0.2s;
+}
+
+.publishBtn {
+  border: 1px solid var(--accent);
+  background-color: rgba(107, 155, 210, 0.1);
+  color: var(--accent);
   &:hover { background-color: rgba(107, 155, 210, 0.2); }
 }
 
 .unpublishBtn {
-  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
   border: 1px solid var(--border);
-  border-radius: 6px;
   background-color: transparent;
   color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--ui-font);
-  white-space: nowrap;
-  transition: all 0.2s;
-  &:hover {
-    border-color: var(--accent);
-    color: var(--text-primary);
-  }
+  &:hover { border-color: var(--accent); color: var(--text-primary); }
 }
-
-.approvedBadge {
-  padding: var(--bar-padding-v) clamp(6px, 0.6vw, 14px);
-  border-radius: 6px;
-  background-color: rgba(34, 197, 94, 0.1);
-  color: #22c55e;
-  font-size: var(--ui-font);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.checkboxLabel {
-  display: flex;
-  align-items: center;
-  gap: clamp(4px, 0.5vw, 8px);
-  cursor: pointer;
-  font-size: var(--ui-font);
-  color: var(--text-primary);
-  input[type="checkbox"] {
-    width: clamp(12px, 1.4vh, 16px);
-    height: clamp(12px, 1.4vh, 16px);
-    accent-color: var(--accent);
-    cursor: pointer;
-  }
-}
-
-/* ── Bar tabs (Сценарии / Черновики) ── */
 
 .divider {
   width: 1px;
-  height: clamp(14px, 1.8vh, 22px);
+  height: clamp(12px, 1.5vh, 20px);
   background-color: var(--border);
   flex-shrink: 0;
   margin: 0 clamp(2px, 0.3vw, 4px);
 }
 
-.barTabs {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
+.barTabs { display: flex; gap: 2px; flex-shrink: 0; }
 
 .barTab {
   display: flex;
   align-items: center;
-  gap: clamp(3px, 0.3vw, 5px);
-  padding: var(--bar-padding-v) clamp(6px, 0.5vw, 12px);
+  gap: clamp(2px, 0.2vw, 4px);
+  padding: clamp(1px, 0.2vh, 4px) clamp(5px, 0.5vw, 10px);
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
@@ -344,12 +284,8 @@
   font-size: var(--ui-font);
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
   white-space: nowrap;
-  &:hover {
-    color: var(--text-primary);
-    background: rgba(255,255,255,0.04);
-  }
+  &:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
 }
 
 .barTabActive {
@@ -363,13 +299,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: clamp(12px, 1.4vh, 16px);
-  height: clamp(12px, 1.4vh, 16px);
-  padding: 0 clamp(2px, 0.3vw, 4px);
-  border-radius: 8px;
+  min-width: clamp(10px, 1.2vh, 14px);
+  height: clamp(10px, 1.2vh, 14px);
+  padding: 0 clamp(2px, 0.2vw, 3px);
+  border-radius: 7px;
   background: var(--accent);
   color: #fff;
-  font-size: clamp(8px, 0.9vh, 11px);
+  font-size: clamp(7px, 0.8vh, 10px);
   font-weight: 700;
 }
 
@@ -381,147 +317,73 @@
   align-self: center;
 }
 
-.updateInfoTrigger {
-  position: fixed;
-  bottom: clamp(30px, 10vh, 65px);
-  right: clamp(166px, 13vw, 200px);
+/* ── Bottom Strip + Panel ── */
+
+.bottomStrip {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+  padding: clamp(5px, 0.6vh, 10px) clamp(12px, 1.5vw, 40px);
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border);
   cursor: pointer;
   color: var(--text-secondary);
-  font-size: var(--tabs-font);
-  opacity: 0.5;
-  transition: opacity 0.2s;
-  z-index: 10;
+  font-size: var(--base-font);
+  flex-shrink: 0;
+  user-select: none;
 
-  &:hover { opacity: 1; }
-}
-
-.updateInfoText {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-}
-
-.updateInfoLabel {
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.updateInfoDate {
-  color: var(--tab-inactive);
-  font-size: 0.85em;
-}
-
-.updateTooltip {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 18px;
-  z-index: 50;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
-}
-
-.updateTooltipTitle {
-  font-size: clamp(12px, 1.3vh, 15px);
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.updateTooltipTable {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: clamp(11px, 1.2vh, 14px);
-
-  th, td {
-    padding: 5px 14px;
-    text-align: left;
-    font-size: inherit;
-    background: none;
-    border: none;
-    position: static;
-    white-space: nowrap;
-  }
-
-  th {
-    color: var(--tab-inactive);
-    font-weight: 600;
-    padding-bottom: 8px;
-  }
-
-  td {
+  &:hover {
+    background-color: var(--bg-table-row-hover);
     color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
   }
 }
-
-.updateTooltipCategory {
-  font-weight: 600;
-  color: var(--accent) !important;
-  padding-right: 20px !important;
+.bottomStripIcon {
+  font-size: 0.7em;
+  opacity: 0.6;
 }
 
-.updateTooltipUpdated td {
-  padding-top: 10px !important;
-  border-top: 1px solid var(--border) !important;
-  color: var(--tab-inactive) !important;
-  font-size: clamp(10px, 1.1vh, 13px);
-}
-
-
-
-.deviationTrigger {
-  position: fixed;
-  bottom: clamp(30px, 10vh, 65px);
-  right: clamp(440px, 35vw, 550px);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  color: var(--text-secondary);
-  font-size: var(--tabs-font);
+.bottomStripDate {
+  margin-left: auto;
   opacity: 0.5;
-  transition: opacity 0.2s;
-  z-index: 10;
-
-  &:hover { opacity: 1; }
+  font-size: 0.9em;
 }
 
-.deviationTooltip {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 20px;
-  z-index: 50;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
+.bottomPanel {
   display: flex;
-  gap: 24px;
   align-items: flex-start;
+  gap: clamp(16px, 2vw, 32px);
+  padding: clamp(8px, 1vh, 14px) clamp(12px, 1.5vw, 40px);
+  background-color: var(--bg-card);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
 }
+
+
+.panelBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: clamp(14px, 1.8vw, 24px);
+}
+
+.devFact {
+  font-size: clamp(14px, 1.7vh, 20px);
+  font-weight: 700;
+  color: #22c55e;
+  align-self: center;
+}
+
+/* ── Deviation Section ── */
 
 .devSection {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: clamp(2px, 0.3vh, 5px);
 }
 
 .devSectionTitle {
-  font-size: clamp(11px, 1.2vh, 14px);
+  font-size: var(--base-font);
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -529,25 +391,18 @@
 .devRow {
   display: flex;
   align-items: stretch;
-  gap: 14px;
+  gap: clamp(6px, 0.8vw, 12px);
 }
 
-.devFact {
-  font-size: clamp(16px, 2vh, 22px);
-  font-weight: 700;
-  color: #22c55e;
-  align-self: center;
-}
 
 
 .devDetails {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   border-left: 1px dashed var(--text-secondary);
-  padding-left: 8px;
+  padding-left: 6px;
 }
-
 
 .devLine {
   display: flex;
@@ -560,39 +415,73 @@
 .devLine:nth-child(2),
 .devLine:nth-child(3) {
   border-right: 1px dashed var(--text-secondary);
-  padding-right: 8px;
 }
 
 .devLabel {
   color: var(--text-secondary);
-  min-width: 35px;
+  min-width: 36px;
 }
 
 .devDeviation {
-  font-size: clamp(14px, 1.6vh, 18px);
+  font-size: clamp(13px, 1.5vh, 18px);
   font-weight: 700;
-  padding-left: 0;
   display: flex;
   align-items: flex-end;
-  padding-top: clamp(10px, 1.2vh, 16px);
-  border-left: none;
+  padding-top: clamp(8px, 1vh, 14px);
 }
 
-.devPositive {
-  color: #22c55e;
-}
-
-.devNegative {
-  color: #ef4444;
-}
+.devPositive { color: #22c55e; }
+.devNegative { color: #ef4444; }
 
 .devPark {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: clamp(14px, 1.6vh, 18px);
+  gap: 3px;
+  font-size: clamp(14px, 1.7vh, 20px);
   font-weight: 600;
   color: var(--text-primary);
   align-self: center;
+}
+
+/* ── Update Info ── */
+
+.updateTitle {
+  font-size: var(--base-font);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.updateTable {
+  border-collapse: collapse;
+  font-size: clamp(10px, 1.1vh, 13px);
+
+  th, td {
+    padding: 2px 10px;
+  }
+}
+
+.updateCategory {
+  font-weight: 600;
+  color: var(--accent) !important;
+}
+
+.updateUpdatedRow td {
+  padding-top: 4px !important;
+  border-top: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  font-size: clamp(8px, 0.8vh, 10px);
+}
+
+/* ── Totals Table ── */
+
+.totalsTable {
+  border-collapse: collapse;
+  font-size: clamp(10px, 1.1vh, 13px);
+
+  th, td {
+    padding: 2px 10px;
+  }
 }

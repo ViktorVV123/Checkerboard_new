@@ -87,3 +87,5 @@ export const getUpdateInfo = async (enterprise: string) => {
     const { data } = await api.get(`/factories/${encodeURIComponent(enterprise)}/update-info`);
     return data;
 };
+export const deleteScenarioEdit = (scenarioId: number, originalId: number, field: string) =>
+    api.delete(`/scenarios/${scenarioId}/edits/${originalId}/${field}`);
