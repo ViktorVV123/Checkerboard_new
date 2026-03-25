@@ -24,7 +24,6 @@ export interface DeviationData {
     obrExpected: number;
     obrShipment: number;
     parkVolume: number;
-    // Детальные данные для таблицы
     ozhidShipmentFact: number;
     ozhidRailway: number;
     ozhidPipe: number;
@@ -50,22 +49,25 @@ interface DataTableProps {
     onCellEdit?: (rowId: number, field: string, value: string) => void;
     onFillDown?: (rowIds: number[], field: string, value: string) => void;
     onDeviationData?: (data: DeviationData) => void;
+    onPasteMultiple?: (edits: { rowId: number; field: string; value: string }[]) => void;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
-                                                     columns,
-                                                     data,
-                                                     formatDate,
-                                                     editable = false,
-                                                     onCellEdit,
-                                                     onFillDown,
-                                                     originalData,
-                                                     onDeviationData,
-                                                 }) => {
+                                                 columns,
+                                                 data,
+                                                 formatDate,
+                                                 editable = false,
+                                                 onCellEdit,
+                                                 onFillDown,
+                                                 originalData,
+                                                 onDeviationData,
+                                                 onPasteMultiple,
+                                             }) => {
     const [editingCell, setEditingCell] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [fillSource, setFillSource] = useState<{ rowIndex: number; colKey: string; value: any } | null>(null);
     const [fillTargetIndex, setFillTargetIndex] = useState<number | null>(null);
+    const [lastClickedCell, setLastClickedCell] = useState<{ rowIndex: number; colKey: string } | null>(null);
     const isDragging = useRef(false);
     const tbodyRef = useRef<HTMLTableSectionElement>(null);
     const tableRef = useRef<HTMLTableElement>(null);
@@ -94,9 +96,10 @@ const DataTable: React.FC<DataTableProps> = ({
     const processedDataRef = useRef(processedData);
     processedDataRef.current = processedData;
 
-    const handleCellClick = (rowId: number, col: Column, currentValue: any) => {
+    const handleCellClick = (rowId: number, col: Column, currentValue: any, rowIndex: number) => {
         if (!editable || !col.editable) return;
         if (isDragging.current) return;
+        setLastClickedCell({ rowIndex, colKey: col.key });
         const key = `${rowId}-${col.key}`;
         setEditingCell(key);
         setEditValue(currentValue !== null && currentValue !== undefined ? String(Math.round(Number(currentValue))) : '');
@@ -132,6 +135,7 @@ const DataTable: React.FC<DataTableProps> = ({
     const fillTargetRef = useRef(fillTargetIndex);
     fillTargetRef.current = fillTargetIndex;
 
+    // ── Fill-down drag ──
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isDragging.current || !fillSourceRef.current) return;
@@ -142,11 +146,7 @@ const DataTable: React.FC<DataTableProps> = ({
             for (let i = sourceIdx + 1; i < rects.length; i++) {
                 const rect = rects[i];
                 const rowCenter = rect.top + rect.height / 2;
-                if (y >= rowCenter) {
-                    targetIdx = i;
-                } else {
-                    break;
-                }
+                if (y >= rowCenter) { targetIdx = i; } else { break; }
             }
             setFillTargetIndex(targetIdx);
         };
@@ -182,6 +182,45 @@ const DataTable: React.FC<DataTableProps> = ({
             document.removeEventListener('mouseup', handleMouseUp);
         };
     }, [onFillDown, onCellEdit]);
+
+    // ── Paste из Excel (multi-row) ──
+    useEffect(() => {
+        const handlePaste = (e: ClipboardEvent) => {
+            if (!lastClickedCell || !editable) return;
+
+            const text = e.clipboardData?.getData('text/plain');
+            if (!text) return;
+
+            const values = text.split(/\r?\n/).filter((v) => v.trim() !== '');
+
+            // Одно значение — пусть браузер вставит в инпут как обычно
+            if (values.length <= 1) return;
+
+            // Многострочная вставка — перехватываем
+            e.preventDefault();
+
+            const { rowIndex, colKey } = lastClickedCell;
+            const currentData = processedDataRef.current;
+
+            // Закрываем инпут если открыт
+            setEditingCell(null);
+
+            const edits: { rowId: number; field: string; value: string }[] = [];
+            for (let i = 0; i < values.length; i++) {
+                const targetRow = currentData[rowIndex + i];
+                if (!targetRow) break;
+                const cleanValue = values[i].trim().replace(/[\s\u00a0]/g, '');
+                edits.push({ rowId: targetRow.id, field: colKey, value: cleanValue });
+            }
+
+            if (edits.length > 0 && onPasteMultiple) {
+                onPasteMultiple(edits);
+            }
+        };
+
+        document.addEventListener('paste', handlePaste);
+        return () => document.removeEventListener('paste', handlePaste);
+    }, [lastClickedCell, editable, onPasteMultiple]);
 
     const isCellInFillRange = (rowIndex: number, colKey: string): boolean => {
         if (!fillSource || fillTargetIndex === null) return false;
@@ -254,7 +293,6 @@ const DataTable: React.FC<DataTableProps> = ({
     const planShipmentTotal = Math.abs(totals.railwayPlan) + Math.abs(totals.pipePlan) + Math.abs(totals.mnppPlan) + Math.abs(totals.waterPlan);
     const obrShipmentTotal = Math.abs(totals.railwayObr) + Math.abs(totals.pipeObr) + Math.abs(totals.mnppObr) + Math.abs(totals.waterObr);
 
-    // Передаём данные наверх
     const prevDeviationRef = useRef<string>('');
 
     useEffect(() => {
@@ -290,6 +328,7 @@ const DataTable: React.FC<DataTableProps> = ({
             onDeviationData(newData);
         }
     });
+
     const getRowClass = (date: number): string => {
         if (date < today) return s.pastRow;
         if (date >= today && date <= weekEnd) return s.currentWeekRow;
@@ -304,7 +343,6 @@ const DataTable: React.FC<DataTableProps> = ({
                     {columns.map((col) => (
                         <th key={col.key} className={getColorClass(col.color)}>
                             {col.label}
-                            {editable && col.editable && <span className={s.editIcon}>✎</span>}
                         </th>
                     ))}
                 </tr>
@@ -325,7 +363,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
                             return (
                                 <td key={col.key} className={cellClass}
-                                    onClick={() => handleCellClick(row.id, col, row[col.key])}>
+                                    onClick={() => handleCellClick(row.id, col, row[col.key], rowIndex)}>
                                     {isEditing ? (
                                         <input className={s.cellInput} value={editValue}
                                                onChange={(e) => setEditValue(e.target.value)}
