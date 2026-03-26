@@ -365,10 +365,22 @@ const DataTable: React.FC<DataTableProps> = ({
                                 <td key={col.key} className={cellClass}
                                     onClick={() => handleCellClick(row.id, col, row[col.key], rowIndex)}>
                                     {isEditing ? (
-                                        <input className={s.cellInput} value={editValue}
-                                               onChange={(e) => setEditValue(e.target.value)}
-                                               onBlur={() => handleCellSave(row.id, col.key)}
-                                               onKeyDown={(e) => handleKeyDown(e, row.id, col.key)} autoFocus/>
+                                        <input
+                                            className={s.cellInput}
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            onBlur={() => handleCellSave(row.id, col.key)}
+                                            onKeyDown={(e) => handleKeyDown(e, row.id, col.key)}
+                                            onPaste={(e) => {
+                                                const text = e.clipboardData?.getData('text/plain') || '';
+                                                const values = text.split(/\r?\n/).filter((v) => v.trim() !== '');
+                                                if (values.length <= 1) {
+                                                    e.preventDefault();
+                                                    setEditValue(text.trim().replace(/[\s\u00a0]/g, ''));
+                                                }
+                                            }}
+                                            autoFocus
+                                        />
                                     ) : col.key === 'date' && formatDate ? (
                                         formatDate(row[col.key])
                                     ) : (
