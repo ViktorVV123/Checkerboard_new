@@ -10,10 +10,6 @@ interface Column {
     absValue?: boolean;
 }
 
-export interface UpdateInfoData {
-    [category: string]: { [sub: string]: string };
-}
-
 export interface DeviationData {
     factExpected: number;
     factShipment: number;
@@ -229,11 +225,15 @@ const DataTable: React.FC<DataTableProps> = ({
 
     // ── Даты ──
     const now = new Date();
-    const currentMonth = now.getFullYear() * 100 + (now.getMonth() + 1);
     const today = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
     const weekFromNow = new Date(now);
     weekFromNow.setDate(weekFromNow.getDate() + 6);
     const weekEnd = weekFromNow.getFullYear() * 10000 + (weekFromNow.getMonth() + 1) * 100 + weekFromNow.getDate();
+
+    // Определяем отображаемый месяц из данных
+    // Определяем отображаемый месяц из данных (вторая строка — первый день основного месяца)
+    const mainDataDate = processedData.length > 1 ? String(processedData[1].date) : (processedData.length > 0 ? String(processedData[0].date) : '');
+    const displayMonth = mainDataDate ? Number(mainDataDate.slice(0, 6)) : now.getFullYear() * 100 + (now.getMonth() + 1);
 
     // ── Totals ──
     const totals: Record<string, number> = {
@@ -253,7 +253,7 @@ const DataTable: React.FC<DataTableProps> = ({
         const rowMonth = Number(dateStr.slice(0, 6));
         const rowDate = Number(row.date);
 
-        if (rowMonth === currentMonth) {
+        if (rowMonth === displayMonth) {
             totals.plan += Number(row.plan) || 0;
             totals.expected += Number(row.expected) || 0;
             totals.shipmentFact += Number(row.shipmentFact) || 0;
@@ -271,7 +271,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
     const latestRow = [...processedData]
         .reverse()
-        .find((r) => Number(r.date) <= today && Number(r.date) >= currentMonth * 100 + 1);
+        .find((r) => Number(r.date) <= today && Number(r.date) >= displayMonth * 100 + 1);
 
     if (latestRow) {
         totals.railwayPlan = Number(latestRow.railwayPlan) || 0;

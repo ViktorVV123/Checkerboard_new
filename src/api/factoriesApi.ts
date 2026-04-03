@@ -89,3 +89,20 @@ export const getUpdateInfo = async (enterprise: string) => {
 };
 export const deleteScenarioEdit = (scenarioId: number, originalId: number, field: string) =>
     api.delete(`/scenarios/${scenarioId}/edits/${originalId}/${field}`);
+
+
+export const getHistoryDates = async (): Promise<string[]> => {
+    const { data } = await api.get('/history/dates');
+    return data;
+};
+
+export const getHistorySnapshot = async (
+    enterprise: string,
+    product: string,
+    date: string,
+): Promise<any[]> => {
+    const { data } = await api.get(
+        `/history/snapshot?enterprise=${encodeURIComponent(enterprise)}&product=${encodeURIComponent(product)}&date=${date}`,
+    );
+    return data;
+};
