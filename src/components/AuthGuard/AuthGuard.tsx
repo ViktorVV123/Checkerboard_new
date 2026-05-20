@@ -5,7 +5,9 @@ type AuthState = 'checking' | 'authed' | 'forbidden';
 
 interface AuthGuardProps {
     children: React.ReactNode;
+
 }
+
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     const [state, setState] = useState<AuthState>('checking');

@@ -187,8 +187,14 @@ const DataTable: React.FC<DataTableProps> = ({
             const text = e.clipboardData?.getData('text/plain');
             if (!text) return;
 
-            const values = text.split(/\r?\n/).filter((v) => v.trim() !== '');
+            console.log('PASTE raw text:', JSON.stringify(text));
+            console.log('PASTE split values:', text.split(/\r?\n/));
 
+            let values = text.split(/\r?\n/);
+            if (values.length > 0 && values[values.length - 1].trim() === '') {
+                values = values.slice(0, -1);
+            }
+            console.log('PASTE after cleanup:', values);
             // Одно значение — пусть браузер вставит в инпут как обычно
             if (values.length <= 1) return;
 
@@ -373,7 +379,10 @@ const DataTable: React.FC<DataTableProps> = ({
                                             onKeyDown={(e) => handleKeyDown(e, row.id, col.key)}
                                             onPaste={(e) => {
                                                 const text = e.clipboardData?.getData('text/plain') || '';
-                                                const values = text.split(/\r?\n/).filter((v) => v.trim() !== '');
+                                                let values = text.split(/\r?\n/);
+                                                if (values.length > 0 && values[values.length - 1].trim() === '') {
+                                                    values = values.slice(0, -1);
+                                                }
                                                 if (values.length <= 1) {
                                                     e.preventDefault();
                                                     setEditValue(text.trim().replace(/[\s\u00a0]/g, ''));

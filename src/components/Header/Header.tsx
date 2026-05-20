@@ -2,6 +2,8 @@ import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import DownloadIcon from '@mui/icons-material/Download';
+import ImportExcelButton from '../ImportExcel/ImportExcelButton';
+import { isImportSupported } from '../../utils/excelSchema';
 import * as s from './Header.module.scss';
 
 const powerBiLinks: Record<string, string> = {
@@ -16,9 +18,15 @@ interface HeaderProps {
     onEnterpriseChange: (enterprise: string) => void;
     onExport: () => void;
     isExporting: boolean;
+    onImportFile?: (file: File) => void;
+    isImporting?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ enterprise, enterprises, onEnterpriseChange, onExport,isExporting }) => {
+const Header: React.FC<HeaderProps> = ({
+                                           enterprise, enterprises, onEnterpriseChange,
+                                           onExport, isExporting,
+                                           onImportFile, isImporting,
+                                       }) => {
     const { theme, toggleTheme } = useTheme();
 
     return (
@@ -67,8 +75,15 @@ const Header: React.FC<HeaderProps> = ({ enterprise, enterprises, onEnterpriseCh
                     title="Выгрузить в Excel"
                 >
                     <DownloadIcon style={{fontSize: 'clamp(12px, 1.2vh, 18px)'}}/>
-                    {isExporting ? 'Загрузка...' : 'Excel'}
+                    {isExporting ? 'Загрузка...' : 'Выгрузить'}
                 </button>
+
+                {onImportFile && isImportSupported(enterprise) && (
+                    <ImportExcelButton
+                        onFileSelected={onImportFile}
+                        isLoading={isImporting}
+                    />
+                )}
 
                 <div className={s.selector}>
                     {enterprises.map((e) => (

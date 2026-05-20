@@ -10,7 +10,7 @@ import {ApprovalStatus, getTodayApprovals, voteApproval} from '@/api/approvalsAp
 import {
     createScenario, deleteScenarioEdit,
     getEnterprises, getProductData, getProducts,
-    getScenarioData, getUpdateInfo,
+    getScenarioData, getScenarios, getUpdateInfo,
     saveScenarioEdit, saveSnapshot,
 } from '@/api/factoriesApi';
 import {exportEnterpriseToExcel} from '@/utils/exportToExcel';
@@ -19,6 +19,8 @@ import Tabs from '@/components/Tabs/Tabs';
 import BottomPanel from '@/components/BottomPanel/BottomPanel';
 import ScenarioModal from '@/components/ScenarioModal/ScenarioModal';
 import CalendarDropdown from '@/components/CalendarDropdown/CalendarDropdown';
+import ImportPreviewModal from '@/components/ImportExcel/ImportPreviewModal';
+import {ImportPreviewResponse, importPreview, importCommit} from '@/api/importApi';
 
 import {useAuth} from '@/hooks/useAuth';
 import {useHistory} from '@/hooks/useHistory';
@@ -82,6 +84,12 @@ const FactoryPage: React.FC = () => {
     const [updateInfo, setUpdateInfo] = useState<Record<string, Record<string, string>> | null>(null);
     const [approvals, setApprovals] = useState<ApprovalStatus[]>([]);
     const [showRejectModal, setShowRejectModal] = useState(false);
+
+    // импорт Excel
+    const [isImporting, setIsImporting] = useState(false);
+    const [isCommittingImport, setIsCommittingImport] = useState(false);
+    const [importPreviewData, setImportPreviewData] = useState<ImportPreviewResponse | null>(null);
+    const [importFileName, setImportFileName] = useState<string>('');
 
     const {currentUsername, authError, setAuthError} = useAuth();
     const history = useHistory();
@@ -228,7 +236,17 @@ const FactoryPage: React.FC = () => {
         newEdited.forEach((val, k) => { const [rId, f] = scenario.parseEditKey(k); if (rId === rowId) currentRow[f] = Number(val); });
         const shipmentFields = ['railwayShipmentFact', 'pipeShipmentFact', 'mnppShipmentFact', 'waterShipmentFact'];
         if (shipmentFields.includes(field)) {
-            const total = (Number(currentRow.railwayShipmentFact) || 0) + (Number(currentRow.pipeShipmentFact) || 0) + (Number(currentRow.mnppShipmentFact) || 0) + (Number(currentRow.waterShipmentFact) || 0);
+            // Для инвертированных продуктов (Нефть на любом заводе, ВГО на ННОС)
+            // суммируем по модулю — каналы могут лежать в БД с отрицательным
+            // знаком (как "расход"), но в shipmentFact кладём положительное.
+            // ВАЖНО: должно совпадать с isInvertedProduct из calculations.ts.
+            const inv = currentRow.product === 'Нефть'
+                || (currentRow.enterprise === 'ННОС' && currentRow.product === 'ВГО');
+            const conv = (v: any) => inv ? Math.abs(Number(v) || 0) : (Number(v) || 0);
+            const total = conv(currentRow.railwayShipmentFact)
+                + conv(currentRow.pipeShipmentFact)
+                + conv(currentRow.mnppShipmentFact)
+                + conv(currentRow.waterShipmentFact);
             const origShipment = originalRow ? Number(originalRow.shipmentFact) || 0 : 0;
             return {field: 'shipmentFact', value: String(total), isOriginal: Math.round(total) === Math.round(origShipment)};
         }
@@ -366,6 +384,62 @@ const FactoryPage: React.FC = () => {
     const handleApprove = async () => { try { await voteApproval(enterprise, 'approved'); setApprovals(await getTodayApprovals(enterprise)); } catch {} };
     const handleRejectConfirm = async (comment: string) => { setShowRejectModal(false); try { await voteApproval(enterprise, 'rejected', comment); setApprovals(await getTodayApprovals(enterprise)); } catch {} };
 
+    /* ── Импорт Excel ── */
+
+    const handleImportFile = async (file: File) => {
+        if (isImporting) return;
+        setIsImporting(true);
+        try {
+            const preview = await importPreview(file);
+            setImportPreviewData(preview);
+            setImportFileName(file.name);
+        } catch (err: any) {
+            if (err?.response?.status === 401) { setAuthError(true); return; }
+            const msg = err?.response?.data?.message ?? err?.message ?? 'Не удалось разобрать файл';
+            alert(`Ошибка импорта: ${msg}`);
+        } finally {
+            setIsImporting(false);
+        }
+    };
+
+    const handleImportCancel = () => {
+        if (isCommittingImport) return;
+        setImportPreviewData(null);
+        setImportFileName('');
+    };
+
+    const handleImportConfirm = async ({ scenarioName, comment }: { scenarioName: string; comment: string }) => {
+        if (!importPreviewData || isCommittingImport) return;
+        setIsCommittingImport(true);
+        try {
+            const result = await importCommit({
+                scenarioName,
+                enterprise,
+                comment: comment || undefined,
+                edits: importPreviewData.edits,
+                parkVolumes: importPreviewData.parkVolumes,
+            });
+
+            // Перезагружаем список сценариев и активируем созданный черновик.
+            const fresh = await getScenarios(enterprise, currentUsername ?? undefined);
+            scenario.setScenarios(fresh);
+            const created = fresh.find((sc: any) => sc.id === result.scenarioId);
+            if (created) {
+                setScenarioBarTab('drafts');
+                scenario.handleSelectScenario(created);
+            }
+
+            setImportPreviewData(null);
+            setImportFileName('');
+        } catch (err: any) {
+            if (err?.response?.status === 401) { setAuthError(true); return; }
+            const msg = err?.response?.data?.message ?? err?.message ?? 'Не удалось создать черновик';
+            alert(`Ошибка импорта: ${msg}`);
+        } finally {
+            setIsCommittingImport(false);
+        }
+    };
+
     const handleSelectHistoryDate = (date: string) => { history.selectHistoryDate(date); scenario.resetScenarioState(); };
     const handleBackToOriginal = () => { scenario.handleBackToOriginal(); history.setSelectedHistoryDate(null); };
 
@@ -375,7 +449,15 @@ const FactoryPage: React.FC = () => {
 
     return (
         <div className={s.page}>
-            <Header enterprise={enterprise} enterprises={enterprises} onEnterpriseChange={setEnterprise} onExport={handleExport} isExporting={isExporting}/>
+            <Header
+                enterprise={enterprise}
+                enterprises={enterprises}
+                onEnterpriseChange={setEnterprise}
+                onExport={handleExport}
+                isExporting={isExporting}
+                onImportFile={handleImportFile}
+                isImporting={isImporting}
+            />
 
             <div className={s.scenarioBar}>
                 <div className={s.scenarioLeft}>
@@ -460,6 +542,16 @@ const FactoryPage: React.FC = () => {
                     onCommentChange={setScenarioComment}
                     onCreate={handleCreateScenario}
                     onClose={() => setShowScenarioModal(false)}
+                />
+            )}
+
+            {importPreviewData && (
+                <ImportPreviewModal
+                    fileName={importFileName}
+                    preview={importPreviewData}
+                    onClose={handleImportCancel}
+                    onConfirm={handleImportConfirm}
+                    isCommitting={isCommittingImport}
                 />
             )}
 
