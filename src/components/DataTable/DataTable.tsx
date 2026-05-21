@@ -293,7 +293,12 @@ const DataTable: React.FC<DataTableProps> = ({
     const obrRow = processedData.find((r) => r.obr);
     if (obrRow) totals.obr = Number(obrRow.obr);
 
-    const parkRow = processedData.find((r) => Number(r.parkVolume) > 0);
+    // Парк ищем в строках ОТОБРАЖАЕМОГО месяца, а не в anchor-строке (30.апр).
+    // Иначе в импорт-черновике без anchor-месяца в файле парк берётся из БД
+    // (за день anchor-месяца), хотя в правках сценария есть актуальный.
+    const parkRow = processedData.find(
+        (r) => Math.floor(Number(r.date) / 100) === displayMonth && Number(r.parkVolume) > 0,
+    ) ?? processedData.find((r) => Number(r.parkVolume) > 0); // fallback на старую логику
     if (parkRow) totals.parkVolume = Number(parkRow.parkVolume);
 
     const planShipmentTotal = Math.abs(totals.railwayPlan) + Math.abs(totals.pipePlan) + Math.abs(totals.mnppPlan) + Math.abs(totals.waterPlan);

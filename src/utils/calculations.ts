@@ -90,6 +90,22 @@ export const calculateAllRows = (
     const inverted = processed.length > 0 &&
         isInvertedProduct(processed[0].enterprise, processed[0].product);
 
+    /**
+     * Поля, изменение которых должно "сломать цепочку" tradeRemains:
+     * с этой строки и ниже игнорируем имеющиеся значения tradeRemains
+     * и считаем по формуле от последнего известного.
+     *
+     * Если юзер поменял ЖД/Трубу/МНПП/Воду или Выработку в строке N,
+     * то Остатки в N, N+1, N+2... должны пересчитаться.
+     */
+    const inputFields = new Set([
+        'expected',
+        'railwayShipmentFact',
+        'pipeShipmentFact',
+        'mnppShipmentFact',
+        'waterShipmentFact',
+    ]);
+
     let lastParkVolume = 0;
     let lastKnownRemains: number | null = null;
 
@@ -138,17 +154,16 @@ export const calculateAllRows = (
                 }
             }
         } else {
-            if (row.tradeRemains !== null && row.tradeRemains !== undefined) {
-                const tr = Number(row.tradeRemains);
-                if (!isNaN(tr)) {
-                    lastKnownRemains = tr;
-                }
-            } else if (lastKnownRemains !== null) {
+            // Есть ли в этой строке правка ВХОДНОГО поля (выработка/каналы)?
+            const rowHasInputEdit = Array.isArray(row.editedFields)
+                && row.editedFields.some((f: string) => inputFields.has(f));
+
+            if (rowHasInputEdit && lastKnownRemains !== null) {
+                // Юзер (или импорт) что-то поменял во входных полях —
+                // пересчитаем Остатки от предыдущего известного значения.
                 const expected = Math.abs(Number(row.expected) || 0);
                 const shipment = Math.abs(Number(processed[i].shipmentFact) || 0);
-                // Обычные продукты: Остатки = вчера + Выработка - Отгрузка
                 const newRemains = lastKnownRemains + expected - shipment;
-
                 processed[i].tradeRemains = newRemains;
                 lastKnownRemains = newRemains;
 
@@ -156,7 +171,31 @@ export const calculateAllRows = (
                     const origRemains = Number(originalCalculated[i]?.tradeRemains) || 0;
                     if (Math.round(newRemains) !== Math.round(origRemains)) {
                         if (!processed[i].editedFields) processed[i].editedFields = [];
-                        processed[i].editedFields.push('tradeRemains');
+                        if (!processed[i].editedFields.includes('tradeRemains')) {
+                            processed[i].editedFields.push('tradeRemains');
+                        }
+                    }
+                }
+            } else if (row.tradeRemains !== null && row.tradeRemains !== undefined) {
+                // В строке есть готовое значение Остатков и нет правок входов —
+                // берём как есть и запоминаем как стартовую/опорную точку.
+                const tr = Number(row.tradeRemains);
+                if (!isNaN(tr)) lastKnownRemains = tr;
+            } else if (lastKnownRemains !== null) {
+                // Пустая строка — считаем формулой от предыдущего известного.
+                const expected = Math.abs(Number(row.expected) || 0);
+                const shipment = Math.abs(Number(processed[i].shipmentFact) || 0);
+                const newRemains = lastKnownRemains + expected - shipment;
+                processed[i].tradeRemains = newRemains;
+                lastKnownRemains = newRemains;
+
+                if (isScenario && originalCalculated.length > 0) {
+                    const origRemains = Number(originalCalculated[i]?.tradeRemains) || 0;
+                    if (Math.round(newRemains) !== Math.round(origRemains)) {
+                        if (!processed[i].editedFields) processed[i].editedFields = [];
+                        if (!processed[i].editedFields.includes('tradeRemains')) {
+                            processed[i].editedFields.push('tradeRemains');
+                        }
                     }
                 }
             }
